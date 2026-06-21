@@ -1,0 +1,1234 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Analisi Posturale · Circolo Tennis Scaligero</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#FFFFFF; --bg2:#F1F4F7; --surface:#FFFFFF; --surface2:#EDF1F5;
+  --border:#C7D2DD; --border-strong:#A7B6C4; --text:#0C1B2A; --ink:#0C1B2A; --muted:#56697A;
+  --navy:#13322A; --accent:#1F8A4C; --accent-soft:#E7F3EA;
+  --ok:#157F3C; --warn:#B45309; --bad:#C42B2B;
+  --shadow:0 1px 2px rgba(14,42,71,.06),0 8px 24px rgba(14,42,71,.06);
+  --mono:'IBM Plex Mono',monospace; --sans:'IBM Plex Sans',sans-serif; --display:'Bricolage Grotesque',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:17px;line-height:1.6;min-height:100vh;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1100px;margin:0 auto;padding:0 24px}
+
+/* HEADER */
+header{border-bottom:2px solid var(--ink);padding:20px 0;position:sticky;top:0;background:rgba(255,255,255,.94);backdrop-filter:blur(10px);z-index:50}
+.brand{display:flex;align-items:center;gap:15px}
+.logo{width:48px;height:48px;border-radius:12px;background:var(--accent);display:grid;place-items:center;flex-shrink:0}
+.logo svg{width:27px;height:27px}
+.brand-txt h1{font-family:var(--display);font-size:21px;font-weight:800;letter-spacing:-.02em;line-height:1;color:var(--ink)}
+.logo-ball{width:52px;height:52px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.logo-ball svg{width:52px;height:52px}
+.brand-txt p{font-family:var(--mono);font-size:11px;color:var(--accent);letter-spacing:.16em;text-transform:uppercase;margin-top:4px;font-weight:600}
+
+/* HERO */
+.hero{padding:60px 0 36px}
+.eyebrow{font-family:var(--mono);font-size:13px;color:var(--accent);letter-spacing:.2em;text-transform:uppercase;margin-bottom:18px;font-weight:600}
+.hero h2{font-family:var(--display);font-size:clamp(42px,7vw,70px);font-weight:800;letter-spacing:-.03em;line-height:.97;max-width:15ch;color:var(--ink)}
+.hero h2 em{font-style:normal;color:var(--accent)}
+.hero p{color:var(--muted);max-width:62ch;margin-top:22px;font-size:19px}
+
+/* SECTIONS */
+section.block{margin:44px 0}
+.sec-head{display:flex;align-items:center;gap:16px;margin-bottom:22px}
+.sec-num{font-family:var(--mono);font-size:15px;font-weight:600;color:#fff;background:var(--accent);padding:5px 12px;border-radius:8px}
+.sec-head h3{font-family:var(--display);font-size:28px;font-weight:700;letter-spacing:-.02em;color:var(--ink)}
+
+/* CARDS */
+.card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:28px;box-shadow:var(--shadow)}
+.grid-form{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:18px}
+label{display:block;font-size:14px;color:var(--ink);font-weight:600;margin-bottom:8px;letter-spacing:.01em}
+input,textarea{width:100%;background:#fff;border:1.5px solid var(--border-strong);color:var(--ink);
+  padding:13px 15px;border-radius:10px;font-family:var(--sans);font-size:16px;font-weight:500;transition:border-color .15s,box-shadow .15s}
+input::placeholder,textarea::placeholder{color:#9AA9B6}
+input:focus,textarea:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{resize:vertical;min-height:68px}
+.divider{height:2px;background:var(--border);margin:26px 0 22px}
+.subhead{font-family:var(--mono);font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);margin-bottom:16px;font-weight:600}
+.bmi-readout{margin-top:18px;display:flex;flex-wrap:wrap;gap:12px}
+.bmi-chip{display:flex;align-items:center;gap:12px;background:var(--bg2);border:1.5px solid var(--border);border-left:5px solid var(--border-strong);border-radius:11px;padding:12px 16px}
+.light{width:15px;height:15px;border-radius:50%;flex-shrink:0;background:#C7D2DD;box-shadow:inset 0 0 0 2px rgba(0,0,0,.10)}
+.light.ok{background:var(--ok)} .light.warn{background:var(--warn)} .light.bad{background:var(--bad)}
+.bmi-chip .k{font-size:13px;color:var(--muted);font-weight:600}
+.bmi-chip .v{font-family:var(--mono);font-size:23px;font-weight:600;margin-top:3px;color:var(--ink)}
+.bmi-chip .c{font-family:var(--mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--accent);margin-top:3px;font-weight:600}
+.bmi-chip.ok{border-left-color:var(--ok)} .bmi-chip.warn{border-left-color:var(--warn)} .bmi-chip.bad{border-left-color:var(--bad)}
+.bmi-chip.ok .c{color:var(--ok)} .bmi-chip.warn .c{color:var(--warn)} .bmi-chip.bad .c{color:var(--bad)}
+.ref-note{font-size:13.5px;color:var(--muted);margin-top:16px;line-height:1.55;border-top:1.5px solid var(--border);padding-top:14px}
+.ref-note code{font-family:var(--mono);font-size:12.5px;color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:5px;font-weight:600}
+select{width:100%;background:#fff;border:1.5px solid var(--border-strong);color:var(--ink);padding:11px 13px;border-radius:9px;font-family:var(--sans);font-size:16px;font-weight:600;cursor:pointer}
+select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+.fms-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:18px}
+.fms-test .ft-name{font-size:15px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px;color:var(--ink)}
+.fms-test .ft-name .bi{font-family:var(--mono);font-size:10px;color:#fff;background:var(--navy);border-radius:5px;padding:2px 6px;letter-spacing:.05em}
+.fms-sides{display:flex;gap:10px}
+.fms-sides>div{flex:1}
+.fms-sides label{font-size:12px;margin-bottom:5px}
+.fms-readout{margin-top:24px;border-top:2px solid var(--border);padding-top:22px;display:flex;flex-wrap:wrap;gap:18px;align-items:center}
+.fms-score{font-family:var(--display);font-size:54px;font-weight:800;letter-spacing:-.03em;line-height:1;color:var(--ink)}
+.fms-score small{font-size:24px;color:var(--muted);font-weight:500}
+.fms-badge{font-family:var(--mono);font-size:13px;text-transform:uppercase;letter-spacing:.08em;padding:8px 14px;border-radius:8px;font-weight:600}
+.fms-badge.ok{background:#E3F4E9;color:var(--ok);border:1.5px solid var(--ok)}
+.fms-badge.bad{background:#FBE6E6;color:var(--bad);border:1.5px solid var(--bad)}
+.fms-flags{flex-basis:100%;display:flex;flex-direction:column;gap:9px;margin-top:6px}
+.fms-flags .flag{font-size:14.5px;color:var(--warn);font-weight:500;display:flex;gap:8px;align-items:flex-start}
+
+/* UPLOAD */
+.uploads{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+@media(max-width:860px){.uploads{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:480px){.uploads{grid-template-columns:1fr}}
+.slot{position:relative;border:2.5px dashed var(--border-strong);border-radius:14px;background:var(--bg2);
+  aspect-ratio:3/4;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:pointer;overflow:hidden;transition:border-color .18s,background .18s}
+.slot:hover{border-color:var(--accent);background:var(--accent-soft)}
+.slot.filled{border-style:solid;border-color:var(--ink)}
+.slot input{display:none}
+.slot-label{position:absolute;top:12px;left:12px;font-family:var(--mono);font-size:11px;letter-spacing:.12em;
+  text-transform:uppercase;background:var(--navy);padding:5px 10px;border-radius:7px;color:#fff;z-index:3;font-weight:600}
+.slot-icon{width:42px;height:42px;color:var(--muted);margin-bottom:14px}
+.slot-hint{font-size:15px;color:var(--muted);text-align:center;padding:0 16px;font-weight:500}
+.slot-hint strong{color:var(--ink)}
+.slot canvas,.slot img.preview{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#E6EBF0;z-index:2}
+.slot .clearbtn{position:absolute;top:10px;right:10px;z-index:4;background:#fff;border:1.5px solid var(--border-strong);
+  color:var(--ink);width:30px;height:30px;border-radius:8px;cursor:pointer;font-size:17px;font-weight:700;display:none}
+.slot.filled .clearbtn{display:block}
+
+/* BUTTONS */
+.actions{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:26px}
+.btn{font-family:var(--sans);font-weight:700;font-size:17px;padding:15px 30px;border-radius:11px;border:none;cursor:pointer;
+  display:inline-flex;align-items:center;gap:10px;transition:transform .12s,box-shadow .12s,opacity .15s,background .15s}
+.btn:active{transform:translateY(1px)}
+.btn-primary{background:var(--accent);color:#fff;box-shadow:0 4px 16px rgba(31,138,76,.3)}
+.btn-primary:hover{background:#176B3A;box-shadow:0 6px 22px rgba(31,138,76,.4)}
+.btn-ghost{background:#fff;color:var(--ink);border:2px solid var(--ink)}
+.btn-ghost:hover{background:var(--ink);color:#fff}
+.btn:disabled{opacity:.45;cursor:not-allowed;box-shadow:none}
+.status{font-family:var(--mono);font-size:15px;color:var(--muted);font-weight:500}
+.status.work{color:var(--accent)}
+.status.err{color:var(--bad);font-weight:600}
+.spinner{width:16px;height:16px;border:2.5px solid var(--border);border-top-color:var(--accent);border-radius:50%;
+  display:inline-block;animation:spin .7s linear infinite;vertical-align:-3px;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* RESULTS */
+#results{display:none}
+.view-result{margin-bottom:30px;background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:24px;box-shadow:var(--shadow)}
+.view-grid{display:grid;grid-template-columns:minmax(0,320px) 1fr;gap:26px;align-items:start;margin-top:14px}
+@media(max-width:760px){.view-grid{grid-template-columns:1fr}}
+.view-canvas-wrap{background:#E6EBF0;border:1.5px solid var(--border-strong);border-radius:12px;overflow:hidden}
+.view-canvas-wrap img,.view-canvas-wrap canvas{display:block;width:100%;height:auto}
+.view-title{font-family:var(--display);font-size:22px;font-weight:700;color:var(--ink)}
+.view-title .tag{font-family:var(--mono);font-size:12px;color:#fff;background:var(--navy);padding:3px 9px;border-radius:6px;letter-spacing:.06em;margin-left:10px;vertical-align:middle;text-transform:uppercase}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:13px;margin-top:4px}
+.metric{background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;padding:15px 17px;border-left:5px solid var(--border-strong)}
+.metric.ok{border-left-color:var(--ok)} .metric.warn{border-left-color:var(--warn)} .metric.bad{border-left-color:var(--bad)}
+.metric .m-label{font-size:13.5px;color:var(--muted);font-weight:600}
+.metric .m-val{font-family:var(--mono);font-size:27px;font-weight:600;margin-top:6px;letter-spacing:-.01em;color:var(--ink)}
+.metric .m-tag{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;margin-top:5px;font-weight:600}
+.metric.ok .m-tag{color:var(--ok)} .metric.warn .m-tag{color:var(--warn)} .metric.bad .m-tag{color:var(--bad)}
+.lowconf{font-family:var(--mono);font-size:13px;color:var(--warn);margin-top:12px;font-weight:500}
+
+/* SUMMARY */
+.summary-card{background:var(--navy);border-radius:16px;padding:30px;box-shadow:var(--shadow)}
+.summary-card h4{font-family:var(--display);font-size:23px;margin-bottom:18px;color:#fff}
+.summary-card ul{list-style:none;display:flex;flex-direction:column;gap:13px}
+.summary-card li{display:flex;gap:13px;align-items:flex-start;font-size:16.5px;color:#E8EEF4}
+.summary-card p{color:#C4D2DE;font-size:16.5px}
+.dot{width:11px;height:11px;border-radius:50%;margin-top:8px;flex-shrink:0}
+.dot.ok{background:#4ADE80} .dot.warn{background:#FBBF24} .dot.bad{background:#FB7185}
+
+/* DISCLAIMER */
+.disclaimer{background:var(--accent-soft);border:1.5px solid var(--accent);border-radius:12px;padding:18px 20px;
+  font-size:14.5px;color:#14402B;display:flex;gap:13px;align-items:flex-start;margin-top:26px;line-height:1.55}
+.disclaimer strong{color:var(--ink)}
+.eval-card{background:var(--surface);border:1.5px solid var(--border);border-radius:16px;padding:26px;box-shadow:var(--shadow);margin-bottom:26px}
+.eval-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.eval-head h4{font-family:var(--display);font-size:23px;font-weight:700;color:var(--ink)}
+.btn-sm{font-size:14px;padding:10px 18px}
+.roster{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px}
+.roster-field{flex:1;min-width:220px}
+.roster-actions{display:flex;gap:10px;flex-wrap:wrap}
+.roster-status{flex-basis:100%;font-family:var(--mono);font-size:13px;color:var(--muted);margin-top:2px}
+.disclaimer svg{width:24px;height:24px;flex-shrink:0;color:var(--accent);margin-top:1px}
+
+/* FOOTER */
+footer{border-top:2px solid var(--ink);margin-top:70px;padding:36px 0 56px}
+.foot-grid{display:flex;flex-wrap:wrap;justify-content:space-between;gap:26px;align-items:center}
+.foot-grid a{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:15px;font-weight:600}
+.foot-grid a:hover{text-decoration:underline}
+.foot-meta{font-family:var(--mono);font-size:13.5px;color:var(--muted);letter-spacing:.02em;line-height:1.7}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap brand">
+    <div class="logo-ball" id="brand-logo" aria-label="Circolo Tennis Scaligero">
+      <svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" fill="#D6E84A" stroke="#1F8A4C" stroke-width="2.5"/><path d="M9 12 Q22 24 9 36" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/><path d="M39 12 Q26 24 39 36" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
+    </div>
+    <div class="brand-txt">
+      <h1>Circolo Tennis Scaligero</h1>
+      <p>Valutazione fisico-posturale · a cura di Andrea Bertelli</p>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- 1. DATI -->
+  <section class="block">
+    <div class="sec-head"><span class="sec-num">01</span><h3>Dati e profilo fisico</h3></div>
+    <div class="card">
+      <div class="roster">
+        <div class="roster-field">
+          <label>Scheda salvata</label>
+          <select id="athlete-select"><option value="">— Nuovo giocatore —</option></select>
+        </div>
+        <div class="roster-actions">
+          <button class="btn btn-primary btn-sm" id="btn-save-athlete">Salva scheda</button>
+          <button class="btn btn-ghost btn-sm" id="btn-new-athlete">Nuova</button>
+          <button class="btn btn-ghost btn-sm" id="btn-del-athlete">Elimina</button>
+        </div>
+        <span class="roster-status" id="roster-status"></span>
+      </div>
+      <div class="divider"></div>
+      <div class="grid-form">
+        <div><label>Nome e cognome</label><input id="f-nome" placeholder="Es. Maria Rossi"></div>
+        <div><label>Data di nascita</label><input id="f-nascita" type="date"></div>
+        <div><label>Età (calcolata)</label><input id="f-eta" readonly placeholder="auto"></div>
+        <div><label>Livello / categoria</label><select id="f-pos">
+          <option value="">— Livello —</option>
+          <option>Junior pre-agonista</option>
+          <option>Junior agonista</option>
+          <option>Senior agonista</option>
+          <option>Amatoriale / club</option>
+          <option>Top di circolo</option>
+          <option>Altro</option>
+        </select></div>
+        <div><label>Mano dominante</label><select id="f-mano">
+          <option value="">—</option>
+          <option>Destro</option>
+          <option>Sinistro</option>
+        </select></div>
+        <div><label>Data valutazione</label><input id="f-data" type="date"></div>
+        <div><label>Operatore</label><input id="f-op" value="Andrea Bertelli"></div>
+        <div style="grid-column:span 2"><label>Operatore — ruolo / circolo</label><input id="f-ruolo" value="Preparatore atletico · Circolo Tennis Scaligero"></div>
+      </div>
+
+      <div class="divider"></div>
+      <div class="subhead">Test fisici e antropometria</div>
+      <div class="grid-form">
+        <div><label>Peso (kg)</label><input id="f-peso" type="number" step="0.1" placeholder="Es. 70"></div>
+        <div><label>Altezza (cm)</label><input id="f-altezza" type="number" step="0.1" placeholder="Es. 178"></div>
+        <div><label>CMJ — Counter Movement Jump (cm)</label><input id="f-cmj" type="number" step="0.1" placeholder="Es. 34"></div>
+        <div><label>Sit and Reach (cm)</label><input id="f-sar" type="number" step="0.1" placeholder="Es. 8"></div>
+      </div>
+
+      <div class="subhead" style="margin-top:20px">Stiffness — 7 salti consecutivi (hopping)</div>
+      <div class="grid-form">
+        <div><label>Tempo di contatto — miglior salto (ms)</label><input id="f-hop-tc" type="number" step="1" placeholder="Es. 160"></div>
+        <div><label>Tempo di volo — miglior salto (ms)</label><input id="f-hop-tf" type="number" step="1" placeholder="Es. 320"></div>
+        <div><label>RSI = t volo / t contatto</label><input id="f-hop-rsi" readonly placeholder="auto"></div>
+        <div><label>Rigidità verticale (kN/m)</label><input id="f-hop-k" readonly placeholder="auto · serve peso"></div>
+      </div>
+
+      <div class="subhead" style="margin-top:20px">Forza e resistenza</div>
+      <div class="grid-form">
+        <div><label>Trazioni isometriche alla sbarra (s)</label><input id="f-pullup" type="number" step="1" placeholder="Es. 30"></div>
+        <div><label>Plank (s)</label><input id="f-plank" type="number" step="1" placeholder="Es. 90"></div>
+      </div>
+      <div id="bmi-readout" class="bmi-readout hidden"></div>
+      <div class="ref-note">Ogni test riceve un punteggio <strong>semaforo</strong> (verde / giallo / rosso) su bande di riferimento indicative per tennisti agonisti adulti. Test di stiffness: 7 salti consecutivi a ginocchia tese (hopping), si registrano tempo di contatto e tempo di volo del salto migliore; RSI = t volo / t contatto, la rigidità verticale è stimata col metodo di Morin (richiede il peso). Le soglie di RSI, trazioni isometriche e plank sono <strong>placeholder da calibrare</strong> sui tuoi dati reali. Tutte le soglie sono in un unico punto del codice (oggetto <code>REF</code>), facili da modificare.</div>
+
+      <div style="margin-top:16px"><label>Note cliniche / anamnesi (opzionale)</label>
+        <textarea id="f-note" placeholder="Sintomatologia riferita, attività sportiva, obiettivi..."></textarea></div>
+    </div>
+  </section>
+
+  <!-- 2. FMS -->
+  <section class="block">
+    <div class="sec-head"><span class="sec-num">02</span><h3>Functional Movement Screen</h3></div>
+    <div class="card">
+      <div id="fms-grid" class="fms-grid"></div>
+      <div id="fms-readout" class="fms-readout hidden"></div>
+      <div class="ref-note">Punteggio 0–3 per test (0 = dolore · 1 = non esegue · 2 = compensi · 3 = corretto). Per i test bilaterali il composito usa il punteggio più basso fra i due lati; eventuali asimmetrie L≠R vengono segnalate. Totale su 21; la soglia ≤ 14 è quella più citata in letteratura (Kiesel et al.) come associata a maggior rischio infortuni — indicazione di screening, oggetto di dibattito.</div>
+    </div>
+  </section>
+
+  <!-- 3. UPLOAD -->
+  <section class="block">
+    <div class="sec-head"><span class="sec-num">03</span><h3>Caricamento immagini</h3></div>
+    <div class="uploads" id="uploads"></div>
+    <p class="status" style="margin-top:14px">Suggerimento: abiti aderenti, sfondo neutro, fotocamera ad altezza ombelico e parallela al corpo. Frontale e laterale in posizione eretta; lo <strong>squat</strong> ripreso nel punto più basso — frontalmente (valgismo, simmetria, profondità) e di lato (inclinazione del tronco, flessione del ginocchio, profondità).</p>
+  </section>
+
+  <!-- 4. ANALISI -->
+  <section class="block">
+    <div class="sec-head"><span class="sec-num">04</span><h3>Elaborazione</h3></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-analyze">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        Analizza postura
+      </button>
+      <span class="status" id="status">In attesa di immagini...</span>
+    </div>
+  </section>
+
+  <!-- 5. RISULTATI POSTURALI (compaiono dopo l'analisi foto) -->
+  <section class="block" id="results">
+    <div class="sec-head"><span class="sec-num">05</span><h3>Analisi posturale</h3></div>
+    <div id="views-out"></div>
+    <div class="summary-card" id="summary"></div>
+  </section>
+
+  <!-- 6. VALUTAZIONE E REPORT (sempre disponibile, anche senza foto) -->
+  <section class="block">
+    <div class="sec-head"><span class="sec-num">06</span><h3>Valutazione e report</h3></div>
+    <div class="eval-card">
+      <div class="eval-head">
+        <h4>Valutazione generale IA</h4>
+        <button class="btn btn-ghost btn-sm" id="btn-eval">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4L12 3z"/><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14z"/></svg>
+          Genera valutazione
+        </button>
+      </div>
+      <span class="status" id="eval-status">Sintesi automatica di postura, test fisici e FMS. Funziona anche senza foto. Puoi rigenerarla e modificarla prima del PDF.</span>
+      <textarea id="ai-eval" placeholder="La valutazione generale apparirà qui. Premi «Genera valutazione» — è modificabile e finirà nel report PDF." style="margin-top:14px;min-height:180px;font-size:15px;line-height:1.6"></textarea>
+    </div>
+    <div class="disclaimer">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/></svg>
+      <span><strong>Nota metodologica.</strong> L'analisi 2D da fotografia e la valutazione IA sono strumenti di <em>screening</em> e monitoraggio, non diagnostici.
+      Angolo di ripresa, distanza, abbigliamento e posizione del soggetto influenzano le misure. I valori vanno interpretati da un professionista
+      qualificato e non sostituiscono la valutazione clinica.</span>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-pdf">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+        Genera report PDF
+      </button>
+      <button class="btn btn-ghost" id="btn-reset">Nuova analisi</button>
+    </div>
+  </section>
+</div>
+
+<footer>
+  <div class="wrap foot-grid">
+    <div class="foot-meta">Circolo Tennis Scaligero<br>Valutazione fisico-posturale a cura di Andrea Bertelli</div>
+    <div style="display:flex;flex-direction:column;gap:6px;text-align:right">
+      <span style="color:var(--muted)">Verona</span>
+    </div>
+  </div>
+</footer>
+
+<script type="module">
+import { PoseLandmarker, FilesetResolver } from "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10/vision_bundle.mjs";
+
+/* ---------- Config viste ---------- */
+const VIEWS = [
+  { key:'frontale',  label:'Frontale',        plane:'frontale' },
+  { key:'laterale',  label:'Laterale',        plane:'sagittale' },
+  { key:'squat',     label:'Squat frontale',  plane:'squat' },
+  { key:'squat_lat', label:'Squat laterale',  plane:'squat_lat' },
+];
+const PLANE_LABEL={frontale:'piano frontale',sagittale:'piano sagittale',squat:'squat · vista frontale',squat_lat:'squat · vista laterale'};
+const state = { images:{}, results:{} };
+let landmarker = null;
+
+/* ---------- Costruzione slot upload ---------- */
+const uploadsEl = document.getElementById('uploads');
+VIEWS.forEach(v=>{
+  const slot = document.createElement('div');
+  slot.className='slot'; slot.id='slot-'+v.key;
+  slot.innerHTML = `
+    <span class="slot-label">${v.label}</span>
+    <button class="clearbtn" data-k="${v.key}" title="Rimuovi" type="button">×</button>
+    <svg class="slot-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4 16l4.5-6 3.5 4.5 2.5-3L20 16"/><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>
+    <span class="slot-hint">Clicca per caricare una foto<br><strong>${v.label.toLowerCase()}</strong></span>
+    <input type="file" accept="image/*,.heic,.heif" data-k="${v.key}">`;
+  uploadsEl.appendChild(slot);
+});
+
+uploadsEl.querySelectorAll('input[type=file]').forEach(inp=>{
+  inp.addEventListener('change',e=>{ if(e.target.files[0]) loadImage(e.target.dataset.k, e.target.files[0]); e.target.value=''; });
+});
+uploadsEl.querySelectorAll('.clearbtn').forEach(b=>{
+  b.addEventListener('click',e=>{ e.preventDefault(); e.stopPropagation(); clearSlot(e.target.dataset.k); });
+});
+uploadsEl.querySelectorAll('.slot').forEach(slot=>{
+  const k=slot.id.replace('slot-','');
+  const input=slot.querySelector('input[type=file]');
+  // click sullo slot → apre il selettore file (tranne sul bottone elimina).
+  // Guardia: ignora il click programmatico dell'input che risale (evita ricorsione).
+  slot.addEventListener('click',e=>{ if(e.target===input || e.target.closest('.clearbtn')) return; input.click(); });
+  // drag & drop
+  ['dragover','dragenter'].forEach(ev=>slot.addEventListener(ev,e=>{e.preventDefault();slot.style.borderColor='var(--accent)';}));
+  ['dragleave','drop'].forEach(ev=>slot.addEventListener(ev,e=>{e.preventDefault();slot.style.borderColor='';}));
+  slot.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f&&f.type.startsWith('image/')) loadImage(k,f); });
+});
+
+function loadHeic2any(){
+  if(typeof window.heic2any!=='undefined') return Promise.resolve(window.heic2any);
+  if(window.__heicP) return window.__heicP;
+  window.__heicP=new Promise((res,rej)=>{ const sc=document.createElement('script');
+    sc.src='https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';
+    sc.onload=()=>res(window.heic2any); sc.onerror=()=>rej(new Error('cdn')); document.head.appendChild(sc); });
+  return window.__heicP;
+}
+async function loadImage(key, file){
+  const st=document.getElementById('status');
+  let blob=file;
+  const isHeic=/image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name||'');
+  if(isHeic){
+    st.innerHTML='<span class="spinner"></span>Conversione HEIC in corso (qualche secondo)...'; st.className='status work';
+    let conv;
+    try{ conv=await loadHeic2any(); if(typeof conv!=='function') throw new Error('no-global'); }
+    catch(e){ console.error('HEIC load',e); st.textContent='Convertitore HEIC non scaricato (serve connessione internet). In alternativa imposta l\'iPhone su JPEG.'; st.className='status err'; return; }
+    try{ const out=await conv({blob:file, toType:'image/jpeg', quality:0.9}); blob=Array.isArray(out)?out[0]:out; }
+    catch(e){ console.error('HEIC convert',e); st.textContent='Questo file HEIC non è leggibile dal convertitore. Imposta l\'iPhone su «Più compatibile» (JPEG) o converti la foto in JPG.'; st.className='status err'; return; }
+  }
+  const img = new Image();
+  img.onload = ()=>{
+    state.images[key] = img;
+    const slot = document.getElementById('slot-'+key);
+    slot.classList.add('filled');
+    let prev = slot.querySelector('img.preview');
+    if(!prev){ prev=document.createElement('img'); prev.className='preview'; slot.appendChild(prev); }
+    prev.src = img.src;
+    updateStatus();
+  };
+  img.onerror = ()=>{ st.textContent='Impossibile leggere l\'immagine. Usa JPG o PNG.'; st.className='status err'; };
+  img.src = URL.createObjectURL(blob);
+}
+function clearSlot(key){
+  delete state.images[key]; delete state.results[key];
+  const slot=document.getElementById('slot-'+key);
+  slot.classList.remove('filled');
+  const p=slot.querySelector('img.preview'); if(p) p.remove();
+  const c=slot.querySelector('canvas'); if(c) c.remove();
+  updateStatus();
+}
+function updateStatus(){
+  const n=Object.keys(state.images).length;
+  const st=document.getElementById('status');
+  if(n===0){ st.textContent='In attesa di immagini...'; st.className='status'; }
+  else { st.textContent=`${n} immagine/i pronte per l'analisi.`; st.className='status'; }
+}
+
+/* ---------- Caricamento modello ---------- */
+async function ensureModel(){
+  if(landmarker) return;
+  const st=document.getElementById('status');
+  st.innerHTML='<span class="spinner"></span>Caricamento modello IA (prima volta ~5s)...'; st.className='status work';
+  const vision = await FilesetResolver.forVisionTasks("https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10/wasm");
+  const cfg = (delegate)=>({
+    baseOptions:{ modelAssetPath:"https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/1/pose_landmarker_full.task", delegate },
+    runningMode:"IMAGE", numPoses:1, minPoseDetectionConfidence:0.4
+  });
+  try { landmarker = await PoseLandmarker.createFromOptions(vision, cfg("GPU")); }
+  catch(e){ landmarker = await PoseLandmarker.createFromOptions(vision, cfg("CPU")); }
+}
+
+/* ---------- Geometria / metriche ---------- */
+const L = { nose:0, earL:7, earR:8, shL:11, shR:12, hipL:23, hipR:24, kneeL:25, kneeR:26, ankL:27, ankR:28 };
+const P = (lm,i,w,h)=>({x:lm[i].x*w, y:lm[i].y*h, v:lm[i].visibility ?? lm[i].presence ?? 1});
+const mid = (a,b)=>({x:(a.x+b.x)/2, y:(a.y+b.y)/2});
+const angleH = (a,b)=>{ let d=Math.atan2(b.y-a.y, b.x-a.x)*180/Math.PI; while(d>90)d-=180; while(d<-90)d+=180; return d; };
+
+function classify(val, t1, t2){ const a=Math.abs(val); return a<=t1?'ok':(a<=t2?'warn':'bad'); }
+const SEV = {ok:'Ottimale', warn:'Lieve', bad:'Marcato'};
+
+function computeFrontal(lm,w,h,posterior){
+  const shL=P(lm,L.shL,w,h), shR=P(lm,L.shR,w,h), hipL=P(lm,L.hipL,w,h), hipR=P(lm,L.hipR,w,h);
+  const earL=P(lm,L.earL,w,h), earR=P(lm,L.earR,w,h), ankL=P(lm,L.ankL,w,h), ankR=P(lm,L.ankR,w,h);
+  const Href = Math.abs(mid(ankL,ankR).y - mid(shL,shR).y) || h;
+  const shTilt=angleH(shL,shR), hipTilt=angleH(hipL,hipR), headTilt=angleH(earL,earR);
+  const shiftSh = (mid(shL,shR).x - mid(hipL,hipR).x)/Href*100;
+  const m=[];
+  m.push(metric('Inclinazione spalle', shTilt.toFixed(1)+'°', classify(shTilt,1.5,4), sideHigher(shL,shR,'spalla')));
+  m.push(metric('Inclinazione bacino', hipTilt.toFixed(1)+'°', classify(hipTilt,1.5,4), sideHigher(hipL,hipR,'emibacino')));
+  m.push(metric('Inclinazione del capo', headTilt.toFixed(1)+'°', classify(headTilt,2,5), null));
+  m.push(metric('Shift laterale tronco', shiftSh.toFixed(1)+'%', classify(shiftSh,3,6), shiftSh>0?'verso sinistra sogg.':'verso destra sogg.'));
+  return {metrics:m, lm, w, h, plumbX:mid(ankL,ankR).x, conf:minVis([shL,shR,hipL,hipR])};
+}
+function computeSagittal(lm,w,h){
+  const earL=P(lm,L.earL,w,h), earR=P(lm,L.earR,w,h), shL=P(lm,L.shL,w,h), shR=P(lm,L.shR,w,h);
+  const hipL=P(lm,L.hipL,w,h), hipR=P(lm,L.hipR,w,h), ankL=P(lm,L.ankL,w,h), ankR=P(lm,L.ankR,w,h);
+  const ear=earL.v>=earR.v?earL:earR, sh=mid(shL,shR), hip=mid(hipL,hipR), ank=mid(ankL,ankR);
+  const Href=Math.abs(ank.y-sh.y)||h;
+  const headFwd=(ear.x-sh.x)/Href*100, shHip=(sh.x-hip.x)/Href*100, hipAnk=(hip.x-ank.x)/Href*100;
+  const m=[];
+  m.push(metric('Anteposizione del capo', Math.abs(headFwd).toFixed(1)+'%', classify(headFwd,4,9), 'offset orecchio–spalla'));
+  m.push(metric('Allineamento spalla–anca', Math.abs(shHip).toFixed(1)+'%', classify(shHip,4,8), null));
+  m.push(metric('Allineamento anca–caviglia', Math.abs(hipAnk).toFixed(1)+'%', classify(hipAnk,4,8), null));
+  return {metrics:m, lm, w, h, plumbX:ank.x, conf:minVis([ear,sh,hip,ank])};
+}
+function sideHigher(a,b,name){ const d=Math.abs(a.y-b.y); if(d<2) return 'simmetrico'; return (a.y<b.y?'sinistra':'destra')+' più alta'; }
+function minVis(arr){ return Math.min(...arr.map(p=>p.v)); }
+function metric(label,val,sev,sub){ return {label,val,sev,sub}; }
+function angleAt(a,b,c){ const v1={x:a.x-b.x,y:a.y-b.y}, v2={x:c.x-b.x,y:c.y-b.y};
+  const d=v1.x*v2.x+v1.y*v2.y, m1=Math.hypot(v1.x,v1.y), m2=Math.hypot(v2.x,v2.y);
+  return Math.acos(Math.max(-1,Math.min(1,d/((m1*m2)||1))))*180/Math.PI; }
+function computeSquat(lm,w,h){
+  const shL=P(lm,L.shL,w,h), shR=P(lm,L.shR,w,h);
+  const hipL=P(lm,L.hipL,w,h), hipR=P(lm,L.hipR,w,h);
+  const kneeL=P(lm,L.kneeL,w,h), kneeR=P(lm,L.kneeR,w,h);
+  const ankL=P(lm,L.ankL,w,h), ankR=P(lm,L.ankR,w,h);
+  const hipMid=mid(hipL,hipR), kneeMid=mid(kneeL,kneeR), ankMid=mid(ankL,ankR);
+  const center=hipMid.x;
+  function fppa(hip,knee,ankle){
+    const ang=angleAt(hip,knee,ankle); const dev=180-ang;
+    const t=(knee.y-hip.y)/((ankle.y-hip.y)||1), lineX=hip.x+(ankle.x-hip.x)*t;
+    const medialDir=Math.sign(center-hip.x), disp=knee.x-lineX;
+    const dir = dev<3 ? 'allineato' : (Math.sign(disp)===medialDir ? 'valgo (ginocchio medio)' : 'varo (ginocchio laterale)');
+    return {ang,dev,dir};
+  }
+  const fL=fppa(hipL,kneeL,ankL), fR=fppa(hipR,kneeR,ankR);
+  const pelvis=angleH(hipL,hipR), shoulders=angleH(shL,shR);
+  const Href=Math.abs(ankMid.y-mid(shL,shR).y)||h;
+  const depth=(hipMid.y-kneeMid.y)/Href*100; // >0 anca sotto il ginocchio (più profondo)
+  const depthSev = depth>=-2 ? 'ok' : (depth>=-10?'warn':'bad');
+  const m=[];
+  m.push(metric('Ginocchio Sx (FPPA)', fL.ang.toFixed(0)+'°', classify(fL.dev,5,10), fL.dir));
+  m.push(metric('Ginocchio Dx (FPPA)', fR.ang.toFixed(0)+'°', classify(fR.dev,5,10), fR.dir));
+  m.push(metric('Simmetria bacino', pelvis.toFixed(1)+'°', classify(pelvis,2,4), sideHigher(hipL,hipR)));
+  m.push(metric('Simmetria spalle/tronco', shoulders.toFixed(1)+'°', classify(shoulders,2,5), null));
+  m.push(metric('Profondità', (depth>0?'+':'')+depth.toFixed(0)+'%', depthSev, depth>=0?'anca ≤ ginocchio':'sopra il parallelo'));
+  return {metrics:m, lm, w, h, plumbX:ankMid.x, conf:minVis([hipL,hipR,kneeL,kneeR,ankL,ankR])};
+}
+function angleVert(a,b){ const dx=b.x-a.x, dy=b.y-a.y; return Math.atan2(Math.abs(dx),Math.abs(dy))*180/Math.PI; }
+function computeSquatLat(lm,w,h){
+  // sceglie il lato più visibile (vista laterale)
+  const Lset={sh:P(lm,L.shL,w,h),hip:P(lm,L.hipL,w,h),knee:P(lm,L.kneeL,w,h),ank:P(lm,L.ankL,w,h)};
+  const Rset={sh:P(lm,L.shR,w,h),hip:P(lm,L.hipR,w,h),knee:P(lm,L.kneeR,w,h),ank:P(lm,L.ankR,w,h)};
+  const visL=(Lset.sh.v+Lset.hip.v+Lset.knee.v+Lset.ank.v), visR=(Rset.sh.v+Rset.hip.v+Rset.knee.v+Rset.ank.v);
+  const S = visL>=visR?Lset:Rset;
+  const trunkLean=angleVert(S.sh,S.hip);      // inclinazione tronco vs verticale
+  const shinAngle=angleVert(S.knee,S.ank);    // inclinazione tibia vs verticale
+  const kneeFlex=angleAt(S.hip,S.knee,S.ank); // angolo articolare ginocchio (sagittale)
+  const parallelism=Math.abs(trunkLean-shinAngle);
+  const Href=Math.abs(S.ank.y-S.sh.y)||h;
+  const depth=(S.hip.y-S.knee.y)/Href*100;
+  const depthSev = depth>=-2 ? 'ok' : (depth>=-10?'warn':'bad');
+  const kneeSev = kneeFlex<=100 ? 'ok' : (kneeFlex<=130?'warn':'bad');
+  const m=[];
+  m.push(metric('Inclinazione tronco', trunkLean.toFixed(0)+'°', classify(trunkLean,40,55), 'rispetto alla verticale'));
+  m.push(metric('Flessione ginocchio', kneeFlex.toFixed(0)+'°', kneeSev, kneeFlex<=100?'almeno parallelo':'poco profondo'));
+  m.push(metric('Parallelismo tronco–tibia', parallelism.toFixed(0)+'°', classify(parallelism,12,22), null));
+  m.push(metric('Profondità', (depth>0?'+':'')+depth.toFixed(0)+'%', depthSev, depth>=0?'anca ≤ ginocchio':'sopra il parallelo'));
+  return {metrics:m, lm, w, h, plumbX:S.ank.x, conf:minVis([S.sh,S.hip,S.knee,S.ank])};
+}
+
+/* ---------- Disegno overlay ---------- */
+const CONN=[[11,12],[11,23],[12,24],[23,24],[11,13],[13,15],[12,14],[14,16],[23,25],[25,27],[24,26],[26,28],[27,31],[28,32],[0,11],[0,12]];
+function drawOverlay(canvas,img,lm,plumbX){
+  const maxW=900, scale=Math.min(1,maxW/img.naturalWidth);
+  const w=Math.round(img.naturalWidth*scale), h=Math.round(img.naturalHeight*scale);
+  canvas.width=w; canvas.height=h;
+  const ctx=canvas.getContext('2d');
+  ctx.drawImage(img,0,0,w,h);
+  ctx.fillStyle='rgba(8,18,30,.30)'; ctx.fillRect(0,0,w,h);
+  ctx.lineCap='round'; ctx.lineJoin='round';
+  // filo a piombo (plumbX è in pixel nativi: riscalo)
+  const plumbPx=plumbX*scale;
+  ctx.strokeStyle='rgba(255,255,255,.9)'; ctx.lineWidth=2; ctx.setLineDash([8,7]);
+  ctx.beginPath(); ctx.moveTo(plumbPx,0); ctx.lineTo(plumbPx,h); ctx.stroke(); ctx.setLineDash([]);
+  // riferimenti orizzontali spalle e bacino
+  ctx.strokeStyle='rgba(255,255,255,.5)'; ctx.lineWidth=1.5; ctx.setLineDash([5,5]);
+  [[11,12],[23,24]].forEach(([a,b])=>{ if(!lm[a]||!lm[b])return; const my=(lm[a].y+lm[b].y)/2*h; ctx.beginPath(); ctx.moveTo(0,my); ctx.lineTo(w,my); ctx.stroke(); });
+  ctx.setLineDash([]);
+  // connessioni — alone scuro + linea arancio per massimo contrasto
+  CONN.forEach(([a,b])=>{ if(!lm[a]||!lm[b])return;
+    ctx.beginPath(); ctx.moveTo(lm[a].x*w,lm[a].y*h); ctx.lineTo(lm[b].x*w,lm[b].y*h);
+    ctx.strokeStyle='rgba(8,18,30,.85)'; ctx.lineWidth=6.5; ctx.stroke();
+    ctx.strokeStyle='#F2640C'; ctx.lineWidth=3.2; ctx.stroke(); });
+  // punti
+  [0,7,8,11,12,13,14,15,16,23,24,25,26,27,28].forEach(i=>{ if(!lm[i])return;
+    ctx.beginPath(); ctx.arc(lm[i].x*w,lm[i].y*h,5.5,0,7); ctx.fillStyle='#F2640C'; ctx.fill();
+    ctx.lineWidth=2; ctx.strokeStyle='#fff'; ctx.stroke(); });
+  return canvas.toDataURL('image/jpeg',0.92);
+}
+
+/* ---------- Pipeline analisi ---------- */
+document.getElementById('btn-analyze').addEventListener('click', runAnalysis);
+async function runAnalysis(){
+  const keys=Object.keys(state.images);
+  const st=document.getElementById('status');
+  if(keys.length===0){ st.textContent='Carica almeno un\'immagine.'; st.className='status err'; return; }
+  const btn=document.getElementById('btn-analyze'); btn.disabled=true;
+  try{
+    await ensureModel();
+    state.results={};
+    for(const key of keys){
+      st.innerHTML=`<span class="spinner"></span>Analisi vista "${key}"...`; st.className='status work';
+      const img=state.images[key];
+      if(img.decode) try{await img.decode();}catch(e){}
+      const res=landmarker.detect(img);
+      if(!res.landmarks||!res.landmarks.length){ state.results[key]={error:true}; continue; }
+      const lm=res.landmarks[0], w=img.naturalWidth, h=img.naturalHeight;
+      const view=VIEWS.find(v=>v.key===key);
+      const data = view.plane==='sagittale' ? computeSagittal(lm,w,h) : (view.plane==='squat' ? computeSquat(lm,w,h) : (view.plane==='squat_lat' ? computeSquatLat(lm,w,h) : computeFrontal(lm,w,h,false)));
+      data.label=view.label; data.key=key;
+      const tmp=document.createElement('canvas');
+      data.png = drawOverlay(tmp,img,lm,data.plumbX);
+      data.canvasW=tmp.width; data.canvasH=tmp.height;
+      data.pngStore = shrink(tmp,480);
+      state.results[key]=data;
+    }
+    renderResults(true);
+    st.textContent='Analisi completata.'; st.className='status';
+  }catch(err){
+    console.error(err);
+    st.innerHTML='Errore nel caricamento del modello IA. Apri il file in una scheda del browser con connessione attiva (il modello viene scaricato da CDN al primo avvio).';
+    st.className='status err';
+  }finally{ btn.disabled=false; }
+}
+
+/* ---------- Render risultati ---------- */
+function renderResults(scroll){
+  const out=document.getElementById('views-out'); out.innerHTML='';
+  const order=['frontale','laterale','squat','squat_lat'];
+  order.filter(k=>state.results[k]).forEach(k=>{
+    const r=state.results[k];
+    const div=document.createElement('div'); div.className='view-result';
+    if(r.error){ div.innerHTML=`<div class="view-title">${VIEWS.find(v=>v.key===k).label} <span class="tag">vista</span></div><p class="status err" style="margin-top:8px">Nessuna figura rilevata in questa immagine. Verifica inquadratura e illuminazione.</p>`; out.appendChild(div); return; }
+    const lowconf = r.conf<0.55 ? `<div class="lowconf">⚠ Confidenza punti chiave bassa (${(r.conf*100|0)}%): risultati indicativi, ripeti lo scatto con migliore inquadratura.</div>`:'';
+    div.innerHTML=`
+      <div class="view-title">${r.label} <span class="tag">${PLANE_LABEL[VIEWS.find(v=>v.key===k).plane]}</span></div>
+      <div class="view-grid">
+        <div class="view-canvas-wrap"><img src="${r.png}" style="display:block;width:100%"></div>
+        <div>
+          <div class="metrics">${r.metrics.map(m=>`
+            <div class="metric ${m.sev}">
+              <div class="m-label">${m.label}</div>
+              <div class="m-val">${m.val}</div>
+              <div class="m-tag">${SEV[m.sev]}${m.sub?' · '+m.sub:''}</div>
+            </div>`).join('')}</div>
+          ${lowconf}
+        </div>
+      </div>`;
+    out.appendChild(div);
+  });
+  renderSummary();
+  document.getElementById('results').style.display='block';
+  if(scroll) document.getElementById('results').scrollIntoView({behavior:'smooth'});
+}
+
+function collectFindings(){
+  const f=[];
+  Object.values(state.results).forEach(r=>{ if(r.error)return; r.metrics.forEach(m=>{ if(m.sev!=='ok') f.push({sev:m.sev, txt:`${r.label}: ${m.label.toLowerCase()} ${m.val}${m.sub&&m.sub!=='simmetrico'?' ('+m.sub+')':''}`}); }); });
+  f.sort((a,b)=> (a.sev==='bad'?0:1)-(b.sev==='bad'?0:1));
+  return f;
+}
+function renderSummary(){
+  const f=collectFindings(); const el=document.getElementById('summary');
+  if(!f.length){ el.innerHTML=`<h4>Quadro di sintesi</h4><p style="color:var(--muted)">Nessuna deviazione significativa rilevata sui parametri analizzati. Allineamento nella norma per uno screening fotografico.</p>`; return; }
+  el.innerHTML=`<h4>Quadro di sintesi · ${f.length} segnalazione/i</h4><ul>${f.map(x=>`<li><span class="dot ${x.sev}"></span><span>${x.txt}</span></li>`).join('')}</ul>`;
+}
+
+/* ---------- PDF ---------- */
+document.getElementById('btn-pdf').addEventListener('click', ()=>{
+  if(!(window.jspdf && window.jspdf.jsPDF)){ alert('Libreria PDF non caricata. Apri l\'app in una scheda del browser con connessione attiva (le librerie si scaricano da CDN).'); return; }
+  try{ genPDF(); }catch(e){ console.error(e); alert('Errore nella generazione del PDF: '+(e&&e.message||e)); }
+});
+function genPDF(){
+  const { jsPDF } = window.jspdf;
+  const doc=new jsPDF({unit:'mm',format:'a4'});
+  const W=210, Hpg=297, M=18, CW=W-2*M;
+  const NAVY=[19,50,42], INK=[14,28,42], ORANGE=[31,138,76], GOLD=[210,224,74], BORDER=[205,215,224], MUTED=[90,107,124];
+  const SEVc={ok:[21,127,60],warn:[176,90,20],bad:[196,43,43]};
+  const DOT={ok:[74,222,128],warn:[251,191,36],bad:[251,113,133]};
+  const nome=val('f-nome')||'—', eta=val('f-eta')||'—', op=val('f-op')||'Andrea Bertelli';
+  const ruolo=val('f-ruolo')||'Preparatore atletico · Circolo Tennis Scaligero';
+  const pos=val('f-pos')||'—';
+  const mano=val('f-mano')||'';
+  const data=val('f-data')||new Date().toISOString().slice(0,10), note=val('f-note');
+  const pp=physicalProfile(), fms=getFMS(), findings=collectFindings();
+  let y=0;
+  const ensure=(h)=>{ if(y+h>Hpg-20){ doc.addPage(); y=20; } };
+  const tableBase=()=>({ margin:{left:M,right:M}, theme:'grid',
+    headStyles:{fillColor:NAVY,textColor:[255,255,255],fontStyle:'bold',fontSize:9.5,cellPadding:2.8},
+    styles:{fontSize:9.5,cellPadding:2.8,textColor:INK,lineColor:BORDER,lineWidth:0.2,valign:'middle'},
+    alternateRowStyles:{fillColor:[246,249,251]} });
+  const section=(t)=>{ ensure(16); doc.setFillColor(...ORANGE); doc.rect(M,y,3.5,7,'F');
+    doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(13.5); doc.text(t,M+6.5,y+5.6); y+=12; };
+
+  // ---- MASTHEAD ----
+  doc.setFillColor(...NAVY); doc.rect(0,0,W,40,'F');
+  doc.setFillColor(...GOLD); doc.rect(0,40,W,2.4,'F');
+  // pallina da tennis su tile bianco
+  doc.setFillColor(255,255,255); doc.roundedRect(M,9,22,22,3,3,'F');
+  (function(cx,cy,r){
+    doc.setFillColor(...GOLD); doc.circle(cx,cy,r,'F');
+    doc.setDrawColor(120,150,40); doc.setLineWidth(0.4); doc.circle(cx,cy,r,'S');
+    doc.setDrawColor(255,255,255); doc.setLineWidth(1.1);
+    for(let s=-1;s<=1;s+=2){ let prev=null;
+      for(let i=0;i<=14;i++){ const tt=-1+2*i/14; const px=cx+s*Math.sin(tt*Math.PI)*r*0.62, py=cy+tt*r*0.92;
+        if(prev) doc.line(prev[0],prev[1],px,py); prev=[px,py]; } }
+  })(M+11,20,8.4);
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(15); doc.text('CIRCOLO TENNIS SCALIGERO', M+27, 16);
+  doc.setTextColor(...GOLD); doc.setFontSize(8.5); doc.text('REPORT DI VALUTAZIONE FISICO-POSTURALE', M+27, 22);
+  doc.setTextColor(200,214,228); doc.setFont('helvetica','normal'); doc.setFontSize(8);
+  doc.text('Preparato da Andrea Bertelli', M+27, 27.5);
+  doc.setTextColor(200,214,228); doc.setFontSize(9); doc.text(data, W-M, 16, {align:'right'});
+  y=52;
+
+  // ---- DATI SOGGETTO ----
+  section('Dati del soggetto');
+  doc.autoTable({ startY:y, theme:'plain', margin:{left:M,right:M},
+    styles:{fontSize:10,cellPadding:{top:1.4,bottom:1.4,left:0,right:3},textColor:INK},
+    columnStyles:{0:{fontStyle:'bold',textColor:MUTED,cellWidth:30},2:{fontStyle:'bold',textColor:MUTED,cellWidth:30}},
+    body:[['Nome',nome,'Età',String(eta)],['Livello',pos,'Mano dom.',mano||'—'],['Data',data,'',''],['Operatore',{content:op+' — '+ruolo,colSpan:3}]] });
+  y=doc.lastAutoTable.finalY+4;
+  if(note){ ensure(14); const nl=doc.splitTextToSize(pdfSafe(note), CW-8);
+    doc.setFillColor(246,249,251); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
+    doc.roundedRect(M,y,CW,nl.length*4.4+8,2,2,'FD');
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.setTextColor(...MUTED); doc.text('NOTE / ANAMNESI',M+4,y+5.5);
+    doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...INK); doc.text(nl,M+4,y+10.5);
+    y+=nl.length*4.4+12; }
+  y+=4;
+
+  // ---- PROFILO FISICO ----
+  const hasPhys = pp.bmi || pp.peso>0 || pp.alt>0 || pp.cmj>0 || pp.rsi || !isNaN(pp.sar) || pp.pullup>0 || pp.plank>0;
+  if(hasPhys){
+    section('Profilo fisico-funzionale');
+    const prow=[];
+    if(pp.peso>0) prow.push(['Peso', pp.peso+' kg','—',null]);
+    if(pp.alt>0) prow.push(['Altezza', pp.alt+' cm','—',null]);
+    if(pp.bmi) prow.push(['BMI', pp.bmi.toFixed(1), bmiCategory(pp.bmi)+' (indicativo)',null]);
+    if(pp.cmj>0){ const b=band('cmj',pp.cmj); prow.push(['CMJ — Counter Movement Jump', pp.cmj+' cm', b.lab+' · forza esplosiva arti inf.', b.sev]); }
+    if(pp.rsi){ const b=band('rsi',pp.rsi); prow.push(['RSI — 7 salti (stiffness)', pp.rsi.toFixed(2), b.lab+' · '+pp.hopTc+'/'+pp.hopTf+' ms (c/v)'+(pp.kvert?' · '+pp.kvert.toFixed(1)+' kN/m':''), b.sev]); }
+    if(!isNaN(pp.sar)){ const b=band('sar',pp.sar); prow.push(['Sit and Reach', pp.sar+' cm', b.lab+' · flessibilità catena post.', b.sev]); }
+    if(pp.pullup>0) prow.push(['Trazioni isometriche alla sbarra', pp.pullup+' s', 'Forza isometrica dorsali / presa', null]);
+    if(pp.plank>0) prow.push(['Plank', pp.plank+' s', 'Resistenza del core', null]);
+    doc.autoTable(Object.assign(tableBase(),{ startY:y, head:[['Parametro','Valore','Riferimento (tennisti agonisti)']],
+      columnStyles:{0:{fontStyle:'bold',cellWidth:62},1:{cellWidth:26,fontStyle:'bold',halign:'center'}},
+      body:prow.map(r=>[r[0],r[1],r[2]]),
+      didParseCell:(d)=>{ if(d.section==='body'&&d.column.index===2){ const s=prow[d.row.index][3]; if(s){ d.cell.styles.textColor=SEVc[s]; d.cell.styles.fontStyle='bold'; } } } }));
+    y=doc.lastAutoTable.finalY+6;
+  }
+
+  // ---- FMS ----
+  if(fms.anyEntered){
+    section('Functional Movement Screen');
+    ensure(28);
+    const rc=fms.total<=14?SEVc.bad:SEVc.ok;
+    doc.setFillColor(...NAVY); doc.roundedRect(M,y,42,22,2.5,2.5,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(24); doc.text(String(fms.total),M+13,y+14.5,{align:'center'});
+    doc.setFontSize(11); doc.setTextColor(165,185,205); doc.text('/ 21',M+22,y+14.5);
+    doc.setFillColor(...rc); doc.roundedRect(M+48,y+3,CW-48,8,1.5,1.5,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(9.5);
+    doc.text((fms.total<=14?'RISCHIO ELEVATO  (≤ 14)':'NELLA NORMA  (> 14)')+(fms.complete?'':'  · INCOMPLETO'), M+51, y+8.4);
+    const fmsNote = fms.total<=14 ? 'Totale ≤ 14: secondo la letteratura più citata (Kiesel et al.) associato a maggior rischio infortuni. Indicazione di screening da contestualizzare.' : 'Totale > 14: nella norma secondo la soglia comunemente citata in letteratura.';
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(...MUTED);
+    doc.text(doc.splitTextToSize(fmsNote, CW-50), M+48, y+15.5);
+    y+=26;
+    const frows=fms.tests.map(t=>{ const v=t.bi ? (t.score!==null?String(t.score):'—')+'   (Sx '+(t.l??'—')+' / Dx '+(t.r??'—')+')' : (t.score!==null?String(t.score):'—'); return [t.name, v]; });
+    doc.autoTable(Object.assign(tableBase(),{ startY:y, head:[['Test','Punteggio (0–3)']],
+      columnStyles:{0:{fontStyle:'bold',cellWidth:78},1:{halign:'left'}}, body:frows }));
+    y=doc.lastAutoTable.finalY+4;
+    if(fms.flags.length){ doc.setFont('helvetica','normal'); doc.setFontSize(8.5); doc.setTextColor(176,90,20);
+      fms.flags.forEach(fl=>{ ensure(6); doc.text(doc.splitTextToSize('⚠  '+fl, CW), M, y); y+=4.8; }); }
+    y+=4;
+  }
+
+  // ---- VISTE ----
+  const order=['frontale','laterale','squat','squat_lat'];
+  order.filter(k=>state.results[k]&&!state.results[k].error).forEach((k,idx)=>{
+    if(idx===0) section('Analisi posturale per vista');
+    const r=state.results[k];
+    const imgW=54, imgH=Math.min(imgW*(r.canvasH/r.canvasW),76);
+    ensure(Math.max(imgH, r.metrics.length*9+14)+12);
+    doc.setFillColor(...NAVY); doc.roundedRect(M,y,CW,8.5,1.5,1.5,'F');
+    doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(10.5);
+    doc.text('VISTA '+r.label.toUpperCase(), M+4, y+5.8);
+    doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(190,205,220);
+    doc.text(PLANE_LABEL[VIEWS.find(v=>v.key===k).plane], W-M-3, y+5.6, {align:'right'});
+    y+=12;
+    try{ doc.addImage(r.png,'JPEG',M,y,imgW,imgH); }catch(e){}
+    doc.setDrawColor(...BORDER); doc.setLineWidth(0.3); doc.rect(M,y,imgW,imgH);
+    doc.autoTable(Object.assign(tableBase(),{ startY:y, margin:{left:M+imgW+6,right:M},
+      head:[['Parametro','Valore','Esito']],
+      columnStyles:{1:{halign:'center',fontStyle:'bold'},2:{halign:'center',fontStyle:'bold',cellWidth:24}},
+      body:r.metrics.map(m=>[m.label+(m.sub&&m.sub!=='simmetrico'?'\n'+m.sub:''), m.val, SEV[m.sev]]),
+      didParseCell:(d)=>{ if(d.section==='body'&&d.column.index===2){ d.cell.styles.textColor=SEVc[r.metrics[d.row.index].sev]; } } }));
+    y=Math.max(y+imgH, doc.lastAutoTable.finalY)+9;
+  });
+
+  // ---- SINTESI ----
+  const items = findings.length ? findings.map(x=>({txt:x.txt,sev:x.sev})) : [{txt:'Nessuna deviazione significativa rilevata sui parametri analizzati. Allineamento nella norma per uno screening fotografico.',sev:'ok'}];
+  const wrapped = items.map(it=>({lines:doc.splitTextToSize(it.txt,CW-16),sev:it.sev}));
+  const boxH = 16 + wrapped.reduce((a,w)=>a+w.lines.length*4.6+2,0);
+  ensure(boxH+4);
+  doc.setFillColor(...NAVY); doc.roundedRect(M,y,CW,boxH,3,3,'F');
+  doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(12.5);
+  doc.text('Quadro di sintesi'+(findings.length?'  ·  '+findings.length+' segnalazione/i':''), M+6, y+9.5);
+  let yy=y+16.5;
+  wrapped.forEach(w=>{ doc.setFillColor(...DOT[w.sev]); doc.circle(M+7.5,yy-1.4,1.4,'F');
+    doc.setTextColor(230,237,244); doc.setFont('helvetica','normal'); doc.setFontSize(9.5);
+    doc.text(w.lines,M+12,yy); yy+=w.lines.length*4.6+2; });
+  y+=boxH+6;
+
+  // ---- SEMAFORO DEI TEST ----
+  const sema=testSemaforo();
+  if(sema.length){
+    section('Semaforo dei test');
+    sema.forEach((r,i)=>{
+      ensure(8.5);
+      if(i%2===0){ doc.setFillColor(246,249,251); doc.rect(M,y-3.5,CW,8,'F'); }
+      const c=SEVc[r.sev]||[150,150,150];
+      doc.setFillColor(...c); doc.circle(M+3.5, y+0.4, 2.4, 'F');
+      doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(10); doc.text(r.label, M+10, y+1.6);
+      doc.setFont('helvetica','normal'); doc.text(String(r.value), M+82, y+1.6);
+      doc.setTextColor(...c); doc.setFont('helvetica','bold'); doc.setFontSize(9); doc.text((r.note||'').toUpperCase(), M+116, y+1.6);
+      y+=8;
+    });
+    ensure(9); y+=2; doc.setFont('helvetica','normal'); doc.setFontSize(7.5); doc.setTextColor(...MUTED);
+    doc.setFillColor(...SEVc.ok); doc.circle(M+2,y,1.5,'F'); doc.text('Buono',M+5,y+1);
+    doc.setFillColor(...SEVc.warn); doc.circle(M+26,y,1.5,'F'); doc.text('Da migliorare',M+29,y+1);
+    doc.setFillColor(...SEVc.bad); doc.circle(M+64,y,1.5,'F'); doc.text('Critico',M+67,y+1);
+    y+=8;
+  }
+
+  // ---- VALUTAZIONE GENERALE ----
+  let evalTxt=(document.getElementById('ai-eval').value||'').trim();
+  if(!evalTxt) evalTxt=localEvaluation(collectAllData());
+  if(evalTxt){
+    section('Valutazione generale');
+    let txt=pdfSafe(evalTxt)
+      .replace(/^\s*#{1,6}\s*/gm,'')          // titoli markdown #
+      .replace(/\*\*(.*?)\*\*/g,'$1')          // grassetto **
+      .replace(/\*(.*?)\*/g,'$1')              // corsivo *
+      .replace(/^\s*[-*_=]{3,}\s*$/gm,'');     // separatori ---
+    const paras=txt.split(/\n{2,}/).map(s=>s.trim()).filter(Boolean);
+    const HEAD=/^([A-ZÀ-Ý][A-ZÀ-Ý0-9'\s\/\-]{2,46}):\s*/;
+    paras.forEach(p=>{
+      let head=null, body=p; const m=p.match(HEAD);
+      if(m){ head=m[1].trim(); body=p.slice(m[0].length).trim(); }
+      if(head){
+        ensure(12); y+=2;
+        doc.setFillColor(...ORANGE); doc.rect(M,y-3.4,2.6,5,'F');
+        doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(...NAVY);
+        doc.text(head, M+5.5, y+0.9); y+=6;
+      }
+      if(body){
+        doc.setFont('helvetica','normal'); doc.setFontSize(9.5); doc.setTextColor(...INK);
+        doc.splitTextToSize(body, CW).forEach(ln=>{ ensure(7); doc.text(ln, M, y); y+=4.9; });
+      }
+      y+=3;
+    });
+    y-=1;
+  }
+
+  // ---- DISCLAIMER ----
+  ensure(26);
+  const dl=doc.splitTextToSize('L\'analisi 2D da fotografia è uno strumento di screening e monitoraggio, non diagnostico. Angolo di ripresa, distanza e posizione del soggetto influenzano le misure. I valori e le bande di riferimento vanno interpretati da un professionista qualificato e non sostituiscono la valutazione clinica posturale.', CW-8);
+  const dH=dl.length*4+11;
+  doc.setFillColor(231,243,234); doc.setDrawColor(...ORANGE); doc.setLineWidth(0.4); doc.roundedRect(M,y,CW,dH,2.5,2.5,'FD');
+  doc.setTextColor(20,64,43); doc.setFont('helvetica','bold'); doc.setFontSize(8.5); doc.text('NOTA METODOLOGICA',M+4,y+6);
+  doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(40,90,65); doc.text(dl,M+4,y+11);
+  y+=dH+8;
+
+  // ---- FOOTER ----
+  const pages=doc.getNumberOfPages();
+  for(let i=1;i<=pages;i++){ doc.setPage(i);
+    doc.setDrawColor(...BORDER); doc.setLineWidth(0.3); doc.line(M,Hpg-13,W-M,Hpg-13);
+    doc.setFont('helvetica','bold'); doc.setFontSize(7.5); doc.setTextColor(...NAVY);
+    doc.text('Circolo Tennis Scaligero · Preparato da Andrea Bertelli',M,Hpg-8.5);
+    doc.setFont('helvetica','normal'); doc.setTextColor(...MUTED);
+    doc.text('Valutazione fisico-posturale · Verona',M,Hpg-4.8);
+    doc.text(`Pag. ${i} / ${pages}`,W-M,Hpg-8.5,{align:'right'}); }
+
+  doc.save(`report_${(nome||'soggetto').replace(/\s+/g,'_').toLowerCase()}_${data}.pdf`);
+}
+function val(id){ return document.getElementById(id).value.trim(); }
+function pdfSafe(t){
+  return (t||'')
+    .replace(/[\u2018\u2019\u201A\u2032\u00B4]/g,"'")
+    .replace(/[\u201C\u201D\u201E\u2033]/g,'"')
+    .replace(/[\u2013\u2014\u2212]/g,'-')
+    .replace(/\u2026/g,'...')
+    .replace(/[\u00A0\u202F\u2009]/g,' ')
+    .replace(/\u2022/g,'-')
+    .replace(/\u2264/g,'<=').replace(/\u2265/g,'>=')
+    .replace(/\u00D7/g,'x').replace(/\u00F7/g,'/')
+    .replace(/[\u2192\u2794\u279C\u27A1]/g,'->')
+    .replace(/[\u2190]/g,'<-')
+    .replace(/[^\x09\x0A\x0D\x20-\x7E\u00A0-\u00FF\u20AC]/g,''); // rimuove caratteri non resi dal font
+}
+
+/* ---------- Reset ---------- */
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  VIEWS.forEach(v=>clearSlot(v.key));
+  document.getElementById('results').style.display='none';
+  document.getElementById('status').textContent='In attesa di immagini...';
+  window.scrollTo({top:0,behavior:'smooth'});
+});
+
+// data default = oggi
+document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
+
+/* ---------- Età automatica da data di nascita ---------- */
+function updateAge(){
+  const b=val('f-nascita'), ref=val('f-data')||new Date().toISOString().slice(0,10);
+  const el=document.getElementById('f-eta'); if(!b){ el.value=''; return; }
+  const bd=new Date(b), rd=new Date(ref);
+  let a=rd.getFullYear()-bd.getFullYear(); const mm=rd.getMonth()-bd.getMonth();
+  if(mm<0||(mm===0&&rd.getDate()<bd.getDate())) a--;
+  el.value=(a>=0&&a<120)?a:'';
+}
+document.getElementById('f-nascita').addEventListener('change',updateAge);
+document.getElementById('f-data').addEventListener('change',updateAge);
+
+/* ---------- Bande di riferimento (tennisti agonisti adulti) — modificabili ---------- */
+const REF = {
+  cmj:[{max:28,lab:'Sotto media',sev:'bad'},{max:34,lab:'Nella media',sev:'warn'},{max:42,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+  rsi:[{max:1.3,lab:'Scarso',sev:'bad'},{max:2.0,lab:'Sufficiente',sev:'warn'},{max:2.6,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+  sar:[{max:0,lab:'Scarsa',sev:'bad'},{max:7,lab:'Nella media',sev:'warn'},{max:15,lab:'Buona',sev:'ok'},{max:Infinity,lab:'Ottima',sev:'ok'}],
+  // Soglie INDICATIVE da calibrare sui tuoi dati reali:
+  pullup:[{max:15,lab:'Sotto media',sev:'bad'},{max:30,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+  plank:[{max:45,lab:'Sotto media',sev:'bad'},{max:90,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+  fms:[{max:14,lab:'Rischio',sev:'bad'},{max:16,lab:'Discreto',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+  bmi:[{max:18.5,lab:'Sottopeso',sev:'warn'},{max:25,lab:'Normopeso',sev:'ok'},{max:30,lab:'Sovrappeso',sev:'warn'},{max:Infinity,lab:'Obesità',sev:'bad'}],
+};
+function band(metric,v){ for(const b of REF[metric]) if(v<=b.max) return b; return REF[metric][REF[metric].length-1]; }
+function testSemaforo(){
+  const p=physicalProfile(), fms=getFMS(), rows=[];
+  if(p.bmi){ const b=band('bmi',p.bmi); rows.push({label:'BMI',value:p.bmi.toFixed(1),sev:b.sev,note:b.lab}); }
+  if(p.cmj>0){ const b=band('cmj',p.cmj); rows.push({label:'CMJ',value:p.cmj+' cm',sev:b.sev,note:b.lab}); }
+  if(p.rsi){ const b=band('rsi',p.rsi); rows.push({label:'RSI (7 salti)',value:p.rsi.toFixed(2),sev:b.sev,note:b.lab+(p.kvert?' · '+p.kvert.toFixed(1)+' kN/m':'')}); }
+  if(!isNaN(p.sar)){ const b=band('sar',p.sar); rows.push({label:'Sit & Reach',value:p.sar+' cm',sev:b.sev,note:b.lab}); }
+  if(p.pullup>0){ const b=band('pullup',p.pullup); rows.push({label:'Trazioni isometriche',value:p.pullup+' s',sev:b.sev,note:b.lab}); }
+  if(p.plank>0){ const b=band('plank',p.plank); rows.push({label:'Plank',value:p.plank+' s',sev:b.sev,note:b.lab}); }
+  if(fms.anyEntered){ const b=band('fms',fms.total); rows.push({label:'FMS totale',value:fms.total+'/21',sev:b.sev,note:b.lab}); }
+  return rows;
+}
+
+/* ---------- Profilo fisico ---------- */
+function bmiCategory(b){ return b<18.5?'Sottopeso':b<25?'Normopeso':b<30?'Sovrappeso':'Obesità'; }
+function physicalProfile(){
+  const peso=parseFloat(val('f-peso')), alt=parseFloat(val('f-altezza'));
+  const cmj=parseFloat(val('f-cmj')), sar=parseFloat(val('f-sar'));
+  const hopTc=parseFloat(val('f-hop-tc')), hopTf=parseFloat(val('f-hop-tf'));
+  const pullup=parseFloat(val('f-pullup')), plank=parseFloat(val('f-plank'));
+  let bmi=null; if(peso>0&&alt>0) bmi=peso/Math.pow(alt/100,2);
+  let rsi=null, jumpH=null, kvert=null;
+  if(hopTc>0&&hopTf>0){
+    const tc=hopTc/1000, tf=hopTf/1000, g=9.81;
+    rsi=tf/tc;                              // indice di reattività
+    jumpH=(g*tf*tf/8)*100;                  // altezza di volo (cm)
+    if(peso>0){                             // rigidità verticale, metodo di Morin et al. 2005
+      const Fmax=peso*g*(Math.PI/2)*(tf/tc+1);
+      const dy=(Fmax*tc*tc)/(peso*Math.PI*Math.PI)+(g*tc*tc/8);
+      kvert=(Fmax/dy)/1000;                 // kN/m
+    }
+  }
+  return {peso,alt,cmj,sar,bmi,hopTc,hopTf,rsi,jumpH,kvert,pullup,plank};
+}
+function refreshBMI(){
+  const p=physicalProfile(); const el=document.getElementById('bmi-readout');
+  // aggiorna i campi calcolati hopping
+  const rEl=document.getElementById('f-hop-rsi'), kEl=document.getElementById('f-hop-k');
+  if(rEl) rEl.value = p.rsi? p.rsi.toFixed(2)+(p.jumpH?'  ('+p.jumpH.toFixed(0)+' cm)':'') : '';
+  if(kEl) kEl.value = p.kvert? p.kvert.toFixed(1)+' kN/m' : '';
+  const chip=(k,v,c,sev)=>`<div class="bmi-chip ${sev||''}"><span class="light ${sev||'none'}"></span><div class="chip-body"><div class="k">${k}</div><div class="v">${v}</div>${c?`<div class="c">${c}</div>`:''}</div></div>`;
+  const chips=[];
+  if(p.peso>0) chips.push(chip('Peso',p.peso+' kg'));
+  if(p.alt>0) chips.push(chip('Altezza',p.alt+' cm'));
+  testSemaforo().forEach(r=>chips.push(chip(r.label,r.value,r.note,r.sev)));
+  if(chips.length){ el.innerHTML=chips.join(''); el.classList.remove('hidden'); } else el.classList.add('hidden');
+}
+['f-peso','f-altezza','f-cmj','f-sar','f-hop-tc','f-hop-tf','f-pullup','f-plank'].forEach(id=>document.getElementById(id).addEventListener('input',refreshBMI));
+
+/* ---------- Functional Movement Screen ---------- */
+const FMS_TESTS=[
+  {key:'squat',name:'Deep Squat',bi:false},
+  {key:'hurdle',name:'Hurdle Step',bi:true},
+  {key:'lunge',name:'In-Line Lunge',bi:true},
+  {key:'shoulder',name:'Shoulder Mobility',bi:true},
+  {key:'aslr',name:'Active Straight-Leg Raise',bi:true},
+  {key:'pushup',name:'Trunk Stability Push-Up',bi:false},
+  {key:'rotary',name:'Rotary Stability',bi:true},
+];
+const fmsGrid=document.getElementById('fms-grid');
+const fmsOpt='<option value="">—</option>'+[3,2,1,0].map(n=>`<option value="${n}">${n}</option>`).join('');
+FMS_TESTS.forEach((t,i)=>{
+  const d=document.createElement('div'); d.className='fms-test';
+  if(t.bi){
+    d.innerHTML=`<div class="ft-name">${i+1}. ${t.name} <span class="bi">L / R</span></div>
+      <div class="fms-sides">
+        <div><label>Sx</label><select id="fms-${t.key}-L">${fmsOpt}</select></div>
+        <div><label>Dx</label><select id="fms-${t.key}-R">${fmsOpt}</select></div>
+      </div>`;
+  } else {
+    d.innerHTML=`<div class="ft-name">${i+1}. ${t.name}</div><select id="fms-${t.key}">${fmsOpt}</select>`;
+  }
+  fmsGrid.appendChild(d);
+});
+function intv(id){ const v=document.getElementById(id).value; return v===''?null:parseInt(v,10); }
+function getFMS(){
+  const tests=[]; let total=0, complete=true, anyEntered=false; const flags=[];
+  FMS_TESTS.forEach(t=>{
+    if(t.bi){
+      const l=intv('fms-'+t.key+'-L'), r=intv('fms-'+t.key+'-R');
+      const hasL=l!==null, hasR=r!==null; if(hasL||hasR) anyEntered=true;
+      let score=null;
+      if(hasL&&hasR){ score=Math.min(l,r); if(l!==r) flags.push(`${t.name}: asimmetria L ${l} / R ${r}`); }
+      else if(hasL||hasR){ score=hasL?l:r; complete=false; }
+      else complete=false;
+      if((hasL&&l===0)||(hasR&&r===0)) flags.push(`${t.name}: dolore segnalato (punteggio 0)`);
+      if(score!==null) total+=score;
+      tests.push({name:t.name,bi:true,l:hasL?l:null,r:hasR?r:null,score});
+    } else {
+      const s=intv('fms-'+t.key);
+      if(s!==null) anyEntered=true; else complete=false;
+      if(s===0) flags.push(`${t.name}: dolore segnalato (punteggio 0)`);
+      if(s!==null) total+=s;
+      tests.push({name:t.name,bi:false,score:s});
+    }
+  });
+  return {tests,total,complete,anyEntered,flags};
+}
+function renderFMS(){
+  const f=getFMS(); const el=document.getElementById('fms-readout');
+  if(!f.anyEntered){ el.classList.add('hidden'); return; }
+  const sev=f.total<=14?'bad':'ok';
+  const badge=(f.total<=14?'Rischio elevato (≤14)':'Nella norma (>14)')+(f.complete?'':' · incompleto');
+  let html=`<div class="fms-score">${f.total}<small>/21</small></div><div class="fms-badge ${sev}">${badge}</div>`;
+  if(f.flags.length) html+=`<div class="fms-flags">${f.flags.map(x=>`<div class="flag">⚠ ${x}</div>`).join('')}</div>`;
+  el.innerHTML=html; el.classList.remove('hidden');
+}
+fmsGrid.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{renderFMS();refreshBMI();}));
+
+/* ---------- Valutazione generale IA ---------- */
+// Endpoint serverless (Vercel). Vedi file api/evaluate.js. In locale (file://) o se assente, usa il fallback.
+const AI_ENDPOINT = '/api/evaluate';
+const SITE_URL = ''; // (QR rimosso in questa versione)
+const LOGO = ""; // nessun logo immagine: il PDF disegna una pallina da tennis
+{ const _bl=document.getElementById('brand-logo'); if(_bl&&LOGO&&LOGO.indexOf('data:')===0) _bl.src=LOGO; }
+function makeQR(text){
+  if(typeof QRCode==='undefined') return null;
+  try{
+    const holder=document.createElement('div');
+    new QRCode(holder,{text:text,width:240,height:240,colorDark:'#0E2A47',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+    const cv=holder.querySelector('canvas');
+    if(cv) return cv.toDataURL('image/png');
+    const img=holder.querySelector('img');
+    if(img&&img.src&&img.src.indexOf('data:')===0) return img.src;
+    return null;
+  }catch(e){ console.error('QR',e); return null; }
+}
+
+function collectAllData(){
+  const p=physicalProfile();
+  const fms=getFMS();
+  const posture=[];
+  Object.values(state.results||{}).forEach(r=>{ if(r&&!r.error) r.metrics.forEach(m=>posture.push({vista:r.label, parametro:m.label, valore:m.val, esito:SEV[m.sev], dettaglio:m.sub||''})); });
+  return {
+    soggetto:{ nome:val('f-nome')||'—', eta:val('f-eta')||'—', livello:val('f-pos')||'non indicato', mano_dominante:val('f-mano')||'non indicata', sport:'Tennis · Circolo Tennis Scaligero' },
+    antropometria:{ peso:p.peso||null, altezza:p.alt||null, bmi:p.bmi?+p.bmi.toFixed(1):null },
+    test:{
+      cmj_cm:p.cmj||null,
+      rsi_7salti:p.rsi?+p.rsi.toFixed(2):null, stiffness_dettaglio:p.rsi?`t contatto ${p.hopTc} ms, t volo ${p.hopTf} ms${p.jumpH?', h volo '+p.jumpH.toFixed(0)+' cm':''}${p.kvert?', rigidità verticale '+p.kvert.toFixed(1)+' kN/m':''}`:null,
+      sit_and_reach_cm:isNaN(p.sar)?null:p.sar,
+      trazioni_isometriche_s:p.pullup||null,
+      plank_s:p.plank||null
+    },
+    fms:{ totale:fms.anyEntered?fms.total:null, su:21, completo:fms.complete, soglia_rischio:'≤14', segnalazioni:fms.flags,
+      dettaglio:fms.anyEntered?fms.tests.map(t=>({test:t.name, punteggio:t.score, sx:t.l, dx:t.r})):[] },
+    postura: posture
+  };
+}
+
+function localEvaluation(d){
+  const t=d.test, a=d.antropometria, f=d.fms; const P=[];
+  const liv=d.soggetto.livello&&d.soggetto.livello!=='non indicato'?', '+d.soggetto.livello.toLowerCase():'';
+  const mano=d.soggetto.mano_dominante&&d.soggetto.mano_dominante!=='non indicata'?', dominanza '+d.soggetto.mano_dominante.toLowerCase():'';
+  P.push(`Profilo di ${d.soggetto.nome!=='—'?d.soggetto.nome:'atleta'}${d.soggetto.eta!=='—'?', '+d.soggetto.eta+' anni':''}${liv}${mano} — tennis agonistico. Sintesi automatica integrata di test fisici, screening del movimento e analisi posturale, letta in chiave tennistica (spostamenti laterali, split-step, decelerazioni e ripartenze, servizio e rotazioni del tronco).`);
+  // forza esplosiva e reattiva
+  const expl=[];
+  if(t.cmj_cm){ const b=band('cmj',t.cmj_cm); expl.push(`CMJ ${t.cmj_cm} cm (${b.lab.toLowerCase()})`); }
+  if(t.rsi_7salti){ const b=band('rsi',t.rsi_7salti); expl.push(`RSI 7 salti ${t.rsi_7salti} (${b.lab.toLowerCase()})${t.stiffness_dettaglio?' — '+t.stiffness_dettaglio:''}`); }
+  if(expl.length) P.push(`FORZA ESPLOSIVA ED ELASTICA: ${expl.join(', ')}. Il CMJ descrive la potenza concentrica, il test dei 7 salti la rigidità (stiffness) e la reattività del piede-caviglia: nel tennis una buona stiffness rende più rapidi split-step, ripartenze e cambi di direzione. Se l'RSI è basso rispetto al CMJ, l'enfasi va su pliometria a basso tempo di contatto e lavoro di caviglia.`);
+  // forza + core
+  const str=[];
+  if(t.trazioni_isometriche_s) str.push(`tenuta isometrica alla sbarra ${t.trazioni_isometriche_s} s (forza isometrica dorsali e presa)`);
+  if(t.plank_s) str.push(`plank ${t.plank_s} s (resistenza del core)`);
+  if(str.length) P.push(`FORZA E RESISTENZA: ${str.join('; ')}. Core e catena posteriore sono determinanti per la stabilità del tronco nel servizio e nei colpi in spostamento e per prevenire sovraccarichi lombari e di spalla.`);
+  // flessibilità + BMI
+  const misc=[];
+  if(t.sit_and_reach_cm!==null){ const b=band('sar',t.sit_and_reach_cm); misc.push(`Sit & Reach ${t.sit_and_reach_cm} cm (${b.lab.toLowerCase()}): flessibilità della catena posteriore`); }
+  if(a.bmi) misc.push(`BMI ${a.bmi} (${bmiCategory(a.bmi).toLowerCase()}, indicativo)`);
+  if(misc.length) P.push('ANTROPOMETRIA E FLESSIBILITÀ: '+misc.join('. ')+'.');
+  // FMS
+  if(f.totale!==null){
+    let s=`QUALITÀ DEL MOVIMENTO (FMS): ${f.totale}/21${f.completo?'':' (screening incompleto)'}. `;
+    s += f.totale<=14 ? 'Sotto la soglia di 14 comunemente citata in letteratura come associata a maggior rischio infortuni: prioritaria la correzione dei pattern più carenti prima di incrementare i carichi.' : 'Sopra la soglia di 14: profilo di movimento complessivamente adeguato.';
+    if(f.segnalazioni&&f.segnalazioni.length) s+=' Segnalazioni: '+f.segnalazioni.join('; ')+'. Nel tennis le asimmetrie L/R sono in parte attese per il lato dominante, ma vanno monitorate e riequilibrate con lavoro unilaterale dedicato.';
+    P.push(s);
+  }
+  // postura
+  if(d.postura&&d.postura.length){
+    const dev=d.postura.filter(x=>x.esito&&x.esito!=='Ottimale');
+    if(dev.length) P.push('POSTURA: rilievi principali — '+dev.map(x=>`${x.vista.toLowerCase()}, ${x.parametro.toLowerCase()} ${x.valore}`).join('; ')+'. Da rivalutare nel tempo per distinguere atteggiamenti posturali modificabili (spesso legati al gesto tennistico asimmetrico) da adattamenti strutturali.');
+    else P.push('POSTURA: nessuna deviazione significativa ai parametri fotografici analizzati.');
+  }
+  // priorità
+  const prio=[];
+  if(f.totale!==null&&f.totale<=14) prio.push('correzione dei pattern FMS più carenti e delle asimmetrie');
+  if(t.rsi_7salti){ const b=band('rsi',t.rsi_7salti); if(b.sev!=='ok') prio.push('sviluppo della rigidità/reattività (pliometria a basso tempo di contatto)'); }
+  if(t.cmj_cm){ const b=band('cmj',t.cmj_cm); if(b.sev==='bad') prio.push('incremento della forza esplosiva degli arti inferiori'); }
+  if(t.sit_and_reach_cm!==null){ const b=band('sar',t.sit_and_reach_cm); if(b.sev==='bad') prio.push('mobilità della catena posteriore'); }
+  if(d.postura&&d.postura.some(x=>x.esito==='Marcato')) prio.push('lavoro correttivo sulle asimmetrie posturali marcate');
+  P.push('PRIORITÀ DI LAVORO: '+(prio.length?prio.join('; ')+'.':'mantenimento e progressione equilibrata di forza, potenza, reattività e mobilità, con monitoraggio periodico.'));
+  // consigli concreti
+  const adv=[];
+  if(t.rsi_7salti){ const b=band('rsi',t.rsi_7salti); if(b.sev!=='ok') adv.push('reattività/stiffness — pliometria a basso tempo di contatto (pogo, hopping, rimbalzi, ankle stiffness drills) 2 sedute/sett.'); }
+  if(t.cmj_cm){ const b=band('cmj',t.cmj_cm); if(b.sev!=='ok') adv.push('forza esplosiva arti inferiori — squat jump, mezzo squat pesante + salti (metodo contrasto), trap-bar jump'); }
+  if(t.trazioni_isometriche_s){ const b=band('pullup',t.trazioni_isometriche_s); if(b.sev!=='ok') adv.push('forza di trazione e presa — rematori, lat machine, tenute/hang progressive'); }
+  if(t.plank_s){ const b=band('plank',t.plank_s); if(b.sev!=='ok') adv.push('core — anti-estensione e anti-rotazione (plank evoluti, Pallof press, dead bug), utili per servizio e stabilità del tronco'); }
+  if(t.sit_and_reach_cm!==null){ const b=band('sar',t.sit_and_reach_cm); if(b.sev!=='ok') adv.push('mobilità catena posteriore — hip hinge, stretching dinamico ischiocrurali, nordic hamstring eccentrico'); }
+  if(f.totale!==null&&f.totale<=14) adv.push('qualità del movimento — correttivi sui pattern FMS più bassi e lavoro unilaterale per le asimmetrie, prima di aumentare i carichi');
+  if(d.postura&&d.postura.some(x=>x.esito==='Marcato')) adv.push('correttivi posturali mirati sui rilievi marcati, con rivalutazione periodica');
+  adv.push('lavoro specifico tennis — agilità multidirezionale, decelerazioni e cambi di direzione, cura del lato dominante (spalla/polso) e del non dominante per il riequilibrio');
+  P.push('CONSIGLI DI ALLENAMENTO: '+adv.join('; ')+'. Volumi, intensità e progressioni vanno adattati al periodo della stagione tennistica e al calendario gare.');
+  P.push('NOTA: sintesi generata localmente come ausilio allo screening; non sostituisce il giudizio clinico del professionista.');
+  return P.join('\n\n');
+}
+
+async function generateAIEval(){
+  const st=document.getElementById('eval-status'); const ta=document.getElementById('ai-eval'); const btn=document.getElementById('btn-eval');
+  btn.disabled=true;
+  st.innerHTML='<span class="spinner"></span>Generazione valutazione...'; st.className='status work';
+  let data=null;
+  try{
+    data=collectAllData();
+    const resp=await fetch(AI_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if(!resp.ok) throw new Error('endpoint '+resp.status);
+    const j=await resp.json();
+    if(!j.evaluation) throw new Error('risposta vuota');
+    ta.value=j.evaluation.trim();
+    st.textContent='Valutazione generata con IA. Modificabile prima del PDF.'; st.className='status';
+  }catch(e){
+    try{ ta.value=localEvaluation(data||collectAllData()); }
+    catch(e2){ console.error(e2); ta.value='Compila i dati del giocatore e i test, poi premi di nuovo «Genera valutazione».'; }
+    st.textContent='Valutazione generata localmente (modificabile). Per la versione IA completa, deploya api/evaluate.js su Vercel con la chiave.';
+    st.className='status';
+  }finally{ btn.disabled=false; }
+}
+document.getElementById('btn-eval').addEventListener('click',generateAIEval);
+
+/* ---------- Anagrafica giocatori · storage layer (oggi localStorage, domani Supabase) ---------- */
+// I metodi di Store sono async di proposito: per passare a Supabase basta sostituire i 4 corpi
+// con chiamate alla tabella (select/insert/update/delete). Il resto del codice resta identico.
+// Schema suggerito Supabase:  giocatori(id text pk, nome text, updated_at timestamptz, payload jsonb)
+//   payload = { fields:{...}, fms:{...}, posture:[...] }
+const LS_KEY='hpl_athletes_v1';
+function _read(){ try{ return JSON.parse(localStorage.getItem(LS_KEY)||'{}'); }catch(e){ return {}; } }
+function _write(o){ localStorage.setItem(LS_KEY, JSON.stringify(o)); }
+const Store={
+  async list(){ return Object.values(_read()).map(r=>({id:r.id,nome:r.nome,updatedAt:r.updatedAt})).sort((a,b)=>(b.updatedAt||'').localeCompare(a.updatedAt||'')); },
+  async get(id){ return _read()[id]||null; },
+  async save(rec){
+    const all=_read(); all[rec.id]=rec;
+    try{ _write(all); return {ok:true}; }
+    catch(e){ // spazio pieno: riprova senza le immagini
+      const light=JSON.parse(JSON.stringify(rec));
+      if(light.results) Object.values(light.results).forEach(r=>{ delete r.png; });
+      all[rec.id]=light;
+      try{ _write(all); return {ok:true, trimmed:true}; }
+      catch(e2){ delete all[rec.id]; try{ _write(all); }catch(_){} return {ok:false}; }
+    }
+  },
+  async remove(id){ const all=_read(); delete all[id]; _write(all); }
+};
+function shrink(srcCanvas,maxW){
+  const s=Math.min(1,maxW/srcCanvas.width);
+  const c=document.createElement('canvas'); c.width=Math.round(srcCanvas.width*s); c.height=Math.round(srcCanvas.height*s);
+  c.getContext('2d').drawImage(srcCanvas,0,0,c.width,c.height);
+  return c.toDataURL('image/jpeg',0.72);
+}
+
+const FIELD_IDS=['f-nome','f-nascita','f-eta','f-pos','f-mano','f-op','f-ruolo','f-peso','f-altezza','f-cmj','f-sar','f-hop-tc','f-hop-tf','f-pullup','f-plank','f-note','ai-eval'];
+const ATHLETE_FIELDS=['f-nome','f-nascita','f-eta','f-pos','f-mano','f-peso','f-altezza','f-cmj','f-sar','f-hop-tc','f-hop-tf','f-pullup','f-plank','f-note','ai-eval'];
+function fmsFieldIds(){ const ids=[]; FMS_TESTS.forEach(t=>{ if(t.bi) ids.push('fms-'+t.key+'-L','fms-'+t.key+'-R'); else ids.push('fms-'+t.key); }); return ids; }
+function escapeHtml(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtDate(iso){ if(!iso) return '—'; try{ return new Date(iso).toLocaleDateString('it-IT'); }catch(e){ return iso; } }
+
+function gatherRecord(existingId){
+  const fields={}; FIELD_IDS.forEach(id=>{ const el=document.getElementById(id); if(el) fields[id]=el.value; });
+  const fms={}; fmsFieldIds().forEach(id=>{ const el=document.getElementById(id); if(el) fms[id]=el.value; });
+  const results={};
+  Object.entries(state.results||{}).forEach(([k,r])=>{ if(r&&!r.error) results[k]={label:r.label, png:r.pngStore||r.png, canvasW:r.canvasW, canvasH:r.canvasH, conf:r.conf, error:false, metrics:r.metrics}; });
+  return { id: existingId || ('atl_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
+           nome: (document.getElementById('f-nome').value.trim()||'Senza nome'),
+           updatedAt: new Date().toISOString(), fields, fms, results };
+}
+function applyRecord(rec){
+  if(!rec) return;
+  FIELD_IDS.forEach(id=>{ const el=document.getElementById(id); if(el&&rec.fields&&id in rec.fields) el.value=rec.fields[id]; });
+  fmsFieldIds().forEach(id=>{ const el=document.getElementById(id); if(el) el.value=(rec.fms&&rec.fms[id])||''; });
+  state.results = rec.results || {};
+  if(Object.keys(state.results).length) renderResults();
+  else { document.getElementById('results').style.display='none'; document.getElementById('views-out').innerHTML=''; }
+  updateAge(); refreshBMI(); renderFMS();
+}
+
+let currentAthleteId=null;
+async function refreshRoster(selectId){
+  const sel=document.getElementById('athlete-select'); const list=await Store.list();
+  sel.innerHTML='<option value="">— Nuovo giocatore —</option>'+list.map(a=>`<option value="${a.id}">${escapeHtml(a.nome)}</option>`).join('');
+  if(selectId){ sel.value=selectId; currentAthleteId=selectId; }
+  const st=document.getElementById('roster-status');
+  if(!st.dataset.locked) st.textContent = list.length? `${list.length} schede salvate su questo dispositivo` : 'Nessuna scheda salvata — compila e premi «Salva scheda»';
+}
+function setStatus(msg){ const st=document.getElementById('roster-status'); st.textContent=msg; st.dataset.locked='1'; }
+
+document.getElementById('athlete-select').addEventListener('change', async e=>{
+  const id=e.target.value;
+  if(!id){ currentAthleteId=null; setStatus('Nuovo giocatore'); return; }
+  const rec=await Store.get(id); applyRecord(rec); currentAthleteId=id;
+  setStatus('Caricata: '+(rec?rec.nome:'')+' · ultimo salvataggio '+fmtDate(rec&&rec.updatedAt));
+});
+document.getElementById('btn-save-athlete').addEventListener('click', async ()=>{
+  const rec=gatherRecord(currentAthleteId||null);
+  const res=await Store.save(rec); currentAthleteId=rec.id;
+  await refreshRoster(rec.id);
+  if(!res.ok) setStatus('Spazio di salvataggio pieno: elimina qualche scheda o libera memoria.');
+  else if(res.trimmed) setStatus('Salvata: '+rec.nome+' (immagini omesse — spazio quasi pieno)');
+  else setStatus('Salvata: '+rec.nome+'  ✓');
+});
+document.getElementById('btn-new-athlete').addEventListener('click', ()=>{
+  currentAthleteId=null; document.getElementById('athlete-select').value='';
+  ATHLETE_FIELDS.forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  fmsFieldIds().forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
+  state.results={}; document.getElementById('views-out').innerHTML=''; document.getElementById('results').style.display='none';
+  refreshBMI(); renderFMS(); setStatus('Nuovo giocatore — compila e premi «Salva scheda»');
+});
+document.getElementById('btn-del-athlete').addEventListener('click', async ()=>{
+  if(!currentAthleteId){ setStatus('Nessun giocatore selezionato'); return; }
+  const rec=await Store.get(currentAthleteId);
+  if(!confirm('Eliminare '+(rec?rec.nome:'questa scheda')+'? Operazione definitiva.')) return;
+  await Store.remove(currentAthleteId); currentAthleteId=null;
+  document.getElementById('athlete-select').value=''; await refreshRoster(); setStatus('Scheda eliminata');
+});
+refreshRoster();
+
+
+
+</script>
+</body>
+</html>
