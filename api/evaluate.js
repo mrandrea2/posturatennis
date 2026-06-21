@@ -20,6 +20,8 @@ module.exports = async (req, res) => {
       "SINTESI DEL PROFILO: ; PUNTI DI FORZA: ; AREE DI MIGLIORAMENTO: ; PRIORITA DI ALLENAMENTO: ; CONSIGLI DI ALLENAMENTO: ; RISCHIO INFORTUNI: . " +
       "Interpreta i numeri in chiave tennistica: spostamenti multidirezionali, split-step, decelerazioni e ripartenze, servizio e rotazioni del tronco, gestione del lato dominante. " +
       "Il test dei 7 salti consecutivi misura rigidità (stiffness) e reattività (RSI = t volo / t contatto): una buona stiffness migliora split-step, ripartenze e cambi di direzione. " +
+      "Il test navetta 5m x4 con cambio di direzione viene eseguito separatamente cambiando sul piede destro e sul piede sinistro: valuta soprattutto la SIMMETRIA fra i due lati (differenza in secondi e in percentuale); un'asimmetria marcata (indicativamente oltre ~10%) va segnalata e colmata con lavoro sul lato più lento, soprattutto nei più giovani. " +
+      "Tieni conto della fascia d'età indicata. " +
       "In CONSIGLI DI ALLENAMENTO dai indicazioni CONCRETE e periodizzate: tipologie di esercizi, frequenza settimanale e, dove utile, schemi indicativi di serie x ripetizioni o durate, collegandole alle criticità emerse. Includi lavoro specifico per il tennis (agilità multidirezionale, pliometria a basso tempo di contatto, cura dell'arto dominante e del riequilibrio). " +
       "Collega esplicitamente i rilievi di postura e di squat (valgismo, profondità, mobilità) alla performance e al rischio infortuni tipici del tennis (spalla dell'arto dominante, gomito, polso, schiena, ginocchio/caviglia nei cambi di direzione). " +
       "Usa SOLO i dati forniti: non inventare valori mancanti e segnala se un dato manca. " +

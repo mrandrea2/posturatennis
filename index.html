@@ -223,6 +223,13 @@ footer{border-top:2px solid var(--ink);margin-top:70px;padding:36px 0 56px}
           <option>Destro</option>
           <option>Sinistro</option>
         </select></div>
+        <div><label>Fascia di riferimento</label><select id="f-fascia">
+          <option value="auto">Auto (da età)</option>
+          <option value="giovani">Giovani (U14)</option>
+          <option value="junior">Junior (15–18)</option>
+          <option value="adulti">Adulti (19–49)</option>
+          <option value="over50">Over 50</option>
+        </select></div>
         <div><label>Data valutazione</label><input id="f-data" type="date"></div>
         <div><label>Operatore</label><input id="f-op" value="Andrea Bertelli"></div>
         <div style="grid-column:span 2"><label>Operatore — ruolo / circolo</label><input id="f-ruolo" value="Preparatore atletico · Circolo Tennis Scaligero"></div>
@@ -245,13 +252,21 @@ footer{border-top:2px solid var(--ink);margin-top:70px;padding:36px 0 56px}
         <div><label>Rigidità verticale (kN/m)</label><input id="f-hop-k" readonly placeholder="auto · serve peso"></div>
       </div>
 
+      <div class="subhead" style="margin-top:20px">Cambio di direzione — navetta 5m × 4 (confronto dx vs sx)</div>
+      <div class="grid-form">
+        <div><label>Tempo · cambio su piede destro (s)</label><input id="f-nav-dx" type="number" step="0.01" placeholder="Es. 6.20"></div>
+        <div><label>Tempo · cambio su piede sinistro (s)</label><input id="f-nav-sx" type="number" step="0.01" placeholder="Es. 6.45"></div>
+        <div><label>Asimmetria Δ tra i due lati</label><input id="f-nav-asym" readonly placeholder="auto"></div>
+      </div>
+
       <div class="subhead" style="margin-top:20px">Forza e resistenza</div>
       <div class="grid-form">
+        <div><label>Piegamenti sulle braccia — ripetizioni max</label><input id="f-pushup" type="number" step="1" placeholder="Es. 25"></div>
         <div><label>Trazioni isometriche alla sbarra (s)</label><input id="f-pullup" type="number" step="1" placeholder="Es. 30"></div>
         <div><label>Plank (s)</label><input id="f-plank" type="number" step="1" placeholder="Es. 90"></div>
       </div>
       <div id="bmi-readout" class="bmi-readout hidden"></div>
-      <div class="ref-note">Ogni test riceve un punteggio <strong>semaforo</strong> (verde / giallo / rosso) su bande di riferimento indicative per tennisti agonisti adulti. Test di stiffness: 7 salti consecutivi a ginocchia tese (hopping), si registrano tempo di contatto e tempo di volo del salto migliore; RSI = t volo / t contatto, la rigidità verticale è stimata col metodo di Morin (richiede il peso). Le soglie di RSI, trazioni isometriche e plank sono <strong>placeholder da calibrare</strong> sui tuoi dati reali. Tutte le soglie sono in un unico punto del codice (oggetto <code>REF</code>), facili da modificare.</div>
+      <div class="ref-note">Ogni test riceve un punteggio <strong>semaforo</strong> (verde / giallo / rosso) su bande di riferimento che <strong>si adattano alla fascia d'età</strong> (giovani, junior, adulti, over 50), selezionata automaticamente dall'età o forzabile dal menù «Fascia di riferimento». Test di stiffness: 7 salti consecutivi a ginocchia tese (hopping), si registrano tempo di contatto e tempo di volo del salto migliore; RSI = t volo / t contatto, la rigidità verticale è stimata col metodo di Morin (richiede il peso). I piegamenti sulle braccia sono il numero massimo di ripetizioni corrette. Il test navetta 5m × 4 con cambio di direzione si esegue una volta cambiando solo sul piede destro e una solo sul sinistro: l'app mostra la <strong>differenza tra i due lati</strong> in secondi e in %, con il lato più rapido. Il semaforo dell'asimmetria usa una soglia generale fra arti (~10%), da calibrare; i tempi assoluti non vengono giudicati. Le soglie sono <strong>indicative, da calibrare</strong> sui dati reali del circolo (oggetto <code>REF_BY_AGE</code> nel codice). Per i minori il BMI andrebbe letto con i percentili di crescita.</div>
 
       <div style="margin-top:16px"><label>Note cliniche / anamnesi (opzionale)</label>
         <textarea id="f-note" placeholder="Sintomatologia riferita, attività sportiva, obiettivi..."></textarea></div>
@@ -690,7 +705,7 @@ function genPDF(){
   doc.autoTable({ startY:y, theme:'plain', margin:{left:M,right:M},
     styles:{fontSize:10,cellPadding:{top:1.4,bottom:1.4,left:0,right:3},textColor:INK},
     columnStyles:{0:{fontStyle:'bold',textColor:MUTED,cellWidth:30},2:{fontStyle:'bold',textColor:MUTED,cellWidth:30}},
-    body:[['Nome',nome,'Età',String(eta)],['Livello',pos,'Mano dom.',mano||'—'],['Data',data,'',''],['Operatore',{content:op+' — '+ruolo,colSpan:3}]] });
+    body:[['Nome',nome,'Età',String(eta)],['Livello',pos,'Mano dom.',mano||'—'],['Data',data,'Fascia rif.',AGE_GROUP_LABEL[pp.fascia]],['Operatore',{content:op+' — '+ruolo,colSpan:3}]] });
   y=doc.lastAutoTable.finalY+4;
   if(note){ ensure(14); const nl=doc.splitTextToSize(pdfSafe(note), CW-8);
     doc.setFillColor(246,249,251); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3);
@@ -701,7 +716,7 @@ function genPDF(){
   y+=4;
 
   // ---- PROFILO FISICO ----
-  const hasPhys = pp.bmi || pp.peso>0 || pp.alt>0 || pp.cmj>0 || pp.rsi || !isNaN(pp.sar) || pp.pullup>0 || pp.plank>0;
+  const hasPhys = pp.bmi || pp.peso>0 || pp.alt>0 || pp.cmj>0 || pp.rsi || !isNaN(pp.sar) || pp.pushups>0 || pp.pullup>0 || pp.plank>0 || pp.navDelta!=null;
   if(hasPhys){
     section('Profilo fisico-funzionale');
     const prow=[];
@@ -711,9 +726,11 @@ function genPDF(){
     if(pp.cmj>0){ const b=band('cmj',pp.cmj); prow.push(['CMJ — Counter Movement Jump', pp.cmj+' cm', b.lab+' · forza esplosiva arti inf.', b.sev]); }
     if(pp.rsi){ const b=band('rsi',pp.rsi); prow.push(['RSI — 7 salti (stiffness)', pp.rsi.toFixed(2), b.lab+' · '+pp.hopTc+'/'+pp.hopTf+' ms (c/v)'+(pp.kvert?' · '+pp.kvert.toFixed(1)+' kN/m':''), b.sev]); }
     if(!isNaN(pp.sar)){ const b=band('sar',pp.sar); prow.push(['Sit and Reach', pp.sar+' cm', b.lab+' · flessibilità catena post.', b.sev]); }
-    if(pp.pullup>0) prow.push(['Trazioni isometriche alla sbarra', pp.pullup+' s', 'Forza isometrica dorsali / presa', null]);
-    if(pp.plank>0) prow.push(['Plank', pp.plank+' s', 'Resistenza del core', null]);
-    doc.autoTable(Object.assign(tableBase(),{ startY:y, head:[['Parametro','Valore','Riferimento (tennisti agonisti)']],
+    if(pp.pushups>0){ const b=band('pushup',pp.pushups); prow.push(['Piegamenti sulle braccia', pp.pushups+' rip', b.lab+' · forza resistente spinta', b.sev]); }
+    if(pp.pullup>0){ const b=band('pullup',pp.pullup); prow.push(['Trazioni isometriche alla sbarra', pp.pullup+' s', b.lab+' · forza dorsali / presa', b.sev]); }
+    if(pp.plank>0){ const b=band('plank',pp.plank); prow.push(['Plank', pp.plank+' s', b.lab+' · resistenza del core', b.sev]); }
+    if(pp.navDelta!=null){ const b=band('navAsym',pp.navAsymPct); prow.push(['Navetta 5m x4 cambio dir. (dx / sx)', pp.navDx+' / '+pp.navSx+' s', b.lab+' · Δ '+pp.navDelta.toFixed(2)+' s ('+Math.round(pp.navAsymPct)+'%), più rapido '+pp.navFaster, b.sev]); }
+    doc.autoTable(Object.assign(tableBase(),{ startY:y, head:[['Parametro','Valore','Riferimento · '+AGE_GROUP_LABEL[pp.fascia]]],
       columnStyles:{0:{fontStyle:'bold',cellWidth:62},1:{cellWidth:26,fontStyle:'bold',halign:'center'}},
       body:prow.map(r=>[r[0],r[1],r[2]]),
       didParseCell:(d)=>{ if(d.section==='body'&&d.column.index===2){ const s=prow[d.row.index][3]; if(s){ d.cell.styles.textColor=SEVc[s]; d.cell.styles.fontStyle='bold'; } } } }));
@@ -889,29 +906,78 @@ function updateAge(){
   if(mm<0||(mm===0&&rd.getDate()<bd.getDate())) a--;
   el.value=(a>=0&&a<120)?a:'';
 }
-document.getElementById('f-nascita').addEventListener('change',updateAge);
-document.getElementById('f-data').addEventListener('change',updateAge);
+document.getElementById('f-nascita').addEventListener('change',()=>{updateAge();refreshBMI();});
+document.getElementById('f-data').addEventListener('change',()=>{updateAge();refreshBMI();});
 
-/* ---------- Bande di riferimento (tennisti agonisti adulti) — modificabili ---------- */
-const REF = {
-  cmj:[{max:28,lab:'Sotto media',sev:'bad'},{max:34,lab:'Nella media',sev:'warn'},{max:42,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
-  rsi:[{max:1.3,lab:'Scarso',sev:'bad'},{max:2.0,lab:'Sufficiente',sev:'warn'},{max:2.6,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
-  sar:[{max:0,lab:'Scarsa',sev:'bad'},{max:7,lab:'Nella media',sev:'warn'},{max:15,lab:'Buona',sev:'ok'},{max:Infinity,lab:'Ottima',sev:'ok'}],
-  // Soglie INDICATIVE da calibrare sui tuoi dati reali:
-  pullup:[{max:15,lab:'Sotto media',sev:'bad'},{max:30,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
-  plank:[{max:45,lab:'Sotto media',sev:'bad'},{max:90,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+/* ---------- Bande di riferimento per fascia d'età (INDICATIVE, da calibrare) ---------- */
+// Metriche che variano con l'età. fms e bmi sono in REF_FIXED (indipendenti dalla fascia).
+const REF_BY_AGE = {
+  giovani: { // Under 14
+    cmj:[{max:18,lab:'Sotto media',sev:'bad'},{max:26,lab:'Nella media',sev:'warn'},{max:34,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+    rsi:[{max:1.0,lab:'Scarso',sev:'bad'},{max:1.6,lab:'Sufficiente',sev:'warn'},{max:2.2,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+    sar:[{max:0,lab:'Scarsa',sev:'bad'},{max:7,lab:'Nella media',sev:'warn'},{max:15,lab:'Buona',sev:'ok'},{max:Infinity,lab:'Ottima',sev:'ok'}],
+    pushup:[{max:8,lab:'Sotto media',sev:'bad'},{max:16,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+    pullup:[{max:8,lab:'Sotto media',sev:'bad'},{max:18,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+    plank:[{max:30,lab:'Sotto media',sev:'bad'},{max:60,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+  },
+  junior: { // 15-18
+    cmj:[{max:24,lab:'Sotto media',sev:'bad'},{max:32,lab:'Nella media',sev:'warn'},{max:40,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+    rsi:[{max:1.2,lab:'Scarso',sev:'bad'},{max:1.9,lab:'Sufficiente',sev:'warn'},{max:2.5,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+    sar:[{max:0,lab:'Scarsa',sev:'bad'},{max:7,lab:'Nella media',sev:'warn'},{max:15,lab:'Buona',sev:'ok'},{max:Infinity,lab:'Ottima',sev:'ok'}],
+    pushup:[{max:12,lab:'Sotto media',sev:'bad'},{max:24,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+    pullup:[{max:12,lab:'Sotto media',sev:'bad'},{max:28,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+    plank:[{max:40,lab:'Sotto media',sev:'bad'},{max:80,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+  },
+  adulti: { // 19-49
+    cmj:[{max:26,lab:'Sotto media',sev:'bad'},{max:34,lab:'Nella media',sev:'warn'},{max:42,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+    rsi:[{max:1.3,lab:'Scarso',sev:'bad'},{max:2.0,lab:'Sufficiente',sev:'warn'},{max:2.6,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+    sar:[{max:-2,lab:'Scarsa',sev:'bad'},{max:5,lab:'Nella media',sev:'warn'},{max:13,lab:'Buona',sev:'ok'},{max:Infinity,lab:'Ottima',sev:'ok'}],
+    pushup:[{max:15,lab:'Sotto media',sev:'bad'},{max:28,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+    pullup:[{max:15,lab:'Sotto media',sev:'bad'},{max:30,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+    plank:[{max:45,lab:'Sotto media',sev:'bad'},{max:90,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+  },
+  over50: { // 50+
+    cmj:[{max:18,lab:'Sotto media',sev:'bad'},{max:26,lab:'Nella media',sev:'warn'},{max:34,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+    rsi:[{max:1.0,lab:'Scarso',sev:'bad'},{max:1.5,lab:'Sufficiente',sev:'warn'},{max:2.1,lab:'Buono',sev:'ok'},{max:Infinity,lab:'Ottimo',sev:'ok'}],
+    sar:[{max:-5,lab:'Scarsa',sev:'bad'},{max:3,lab:'Nella media',sev:'warn'},{max:10,lab:'Buona',sev:'ok'},{max:Infinity,lab:'Ottima',sev:'ok'}],
+    pushup:[{max:8,lab:'Sotto media',sev:'bad'},{max:18,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+    pullup:[{max:8,lab:'Sotto media',sev:'bad'},{max:20,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+    plank:[{max:30,lab:'Sotto media',sev:'bad'},{max:60,lab:'Nella media',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
+  },
+};
+const REF_FIXED = {
   fms:[{max:14,lab:'Rischio',sev:'bad'},{max:16,lab:'Discreto',sev:'warn'},{max:Infinity,lab:'Buono',sev:'ok'}],
   bmi:[{max:18.5,lab:'Sottopeso',sev:'warn'},{max:25,lab:'Normopeso',sev:'ok'},{max:30,lab:'Sovrappeso',sev:'warn'},{max:Infinity,lab:'Obesità',sev:'bad'}],
+  // Asimmetria navetta cambio di direzione, in % (differenza fra i due lati). Soglie generali fra arti, da calibrare.
+  navAsym:[{max:5,lab:'Simmetria buona',sev:'ok'},{max:10,lab:'Asimmetria lieve',sev:'warn'},{max:Infinity,lab:'Asimmetria marcata',sev:'bad'}],
 };
-function band(metric,v){ for(const b of REF[metric]) if(v<=b.max) return b; return REF[metric][REF[metric].length-1]; }
+const AGE_GROUP_LABEL = { giovani:'Giovani (U14)', junior:'Junior (15–18)', adulti:'Adulti (19–49)', over50:'Over 50' };
+function currentAgeGroup(){
+  const sel=val('f-fascia');
+  if(sel && sel!=='auto' && REF_BY_AGE[sel]) return sel;
+  const age=parseInt(val('f-eta'),10);
+  if(isNaN(age)) return 'adulti';
+  if(age<15) return 'giovani';
+  if(age<=18) return 'junior';
+  if(age<50) return 'adulti';
+  return 'over50';
+}
+function band(metric,v){
+  let arr;
+  if(REF_FIXED[metric]) arr=REF_FIXED[metric];
+  else { const g=REF_BY_AGE[currentAgeGroup()]||REF_BY_AGE.adulti; arr=g[metric]||REF_BY_AGE.adulti[metric]; }
+  for(const b of arr) if(v<=b.max) return b; return arr[arr.length-1];
+}
 function testSemaforo(){
   const p=physicalProfile(), fms=getFMS(), rows=[];
   if(p.bmi){ const b=band('bmi',p.bmi); rows.push({label:'BMI',value:p.bmi.toFixed(1),sev:b.sev,note:b.lab}); }
   if(p.cmj>0){ const b=band('cmj',p.cmj); rows.push({label:'CMJ',value:p.cmj+' cm',sev:b.sev,note:b.lab}); }
   if(p.rsi){ const b=band('rsi',p.rsi); rows.push({label:'RSI (7 salti)',value:p.rsi.toFixed(2),sev:b.sev,note:b.lab+(p.kvert?' · '+p.kvert.toFixed(1)+' kN/m':'')}); }
   if(!isNaN(p.sar)){ const b=band('sar',p.sar); rows.push({label:'Sit & Reach',value:p.sar+' cm',sev:b.sev,note:b.lab}); }
+  if(p.pushups>0){ const b=band('pushup',p.pushups); rows.push({label:'Piegamenti',value:p.pushups+' rip',sev:b.sev,note:b.lab}); }
   if(p.pullup>0){ const b=band('pullup',p.pullup); rows.push({label:'Trazioni isometriche',value:p.pullup+' s',sev:b.sev,note:b.lab}); }
   if(p.plank>0){ const b=band('plank',p.plank); rows.push({label:'Plank',value:p.plank+' s',sev:b.sev,note:b.lab}); }
+  if(p.navDelta!=null){ const b=band('navAsym',p.navAsymPct); rows.push({label:'Navetta dx/sx Δ',value:p.navDelta.toFixed(2)+' s ('+Math.round(p.navAsymPct)+'%)',sev:b.sev,note:b.lab+' · dx '+p.navDx+' / sx '+p.navSx+' s'}); }
   if(fms.anyEntered){ const b=band('fms',fms.total); rows.push({label:'FMS totale',value:fms.total+'/21',sev:b.sev,note:b.lab}); }
   return rows;
 }
@@ -922,7 +988,14 @@ function physicalProfile(){
   const peso=parseFloat(val('f-peso')), alt=parseFloat(val('f-altezza'));
   const cmj=parseFloat(val('f-cmj')), sar=parseFloat(val('f-sar'));
   const hopTc=parseFloat(val('f-hop-tc')), hopTf=parseFloat(val('f-hop-tf'));
-  const pullup=parseFloat(val('f-pullup')), plank=parseFloat(val('f-plank'));
+  const pushups=parseFloat(val('f-pushup')), pullup=parseFloat(val('f-pullup')), plank=parseFloat(val('f-plank'));
+  const navDx=parseFloat(val('f-nav-dx')), navSx=parseFloat(val('f-nav-sx'));
+  let navDelta=null, navAsymPct=null, navFaster=null;
+  if(navDx>0&&navSx>0){
+    navDelta=Math.abs(navDx-navSx);
+    navAsymPct=navDelta/Math.min(navDx,navSx)*100;
+    navFaster = navDx<navSx ? 'piede destro' : (navSx<navDx ? 'piede sinistro' : 'pari');
+  }
   let bmi=null; if(peso>0&&alt>0) bmi=peso/Math.pow(alt/100,2);
   let rsi=null, jumpH=null, kvert=null;
   if(hopTc>0&&hopTf>0){
@@ -935,7 +1008,7 @@ function physicalProfile(){
       kvert=(Fmax/dy)/1000;                 // kN/m
     }
   }
-  return {peso,alt,cmj,sar,bmi,hopTc,hopTf,rsi,jumpH,kvert,pullup,plank};
+  return {peso,alt,cmj,sar,bmi,hopTc,hopTf,rsi,jumpH,kvert,pushups,pullup,plank,navDx,navSx,navDelta,navAsymPct,navFaster,fascia:currentAgeGroup()};
 }
 function refreshBMI(){
   const p=physicalProfile(); const el=document.getElementById('bmi-readout');
@@ -943,14 +1016,18 @@ function refreshBMI(){
   const rEl=document.getElementById('f-hop-rsi'), kEl=document.getElementById('f-hop-k');
   if(rEl) rEl.value = p.rsi? p.rsi.toFixed(2)+(p.jumpH?'  ('+p.jumpH.toFixed(0)+' cm)':'') : '';
   if(kEl) kEl.value = p.kvert? p.kvert.toFixed(1)+' kN/m' : '';
+  const nEl=document.getElementById('f-nav-asym');
+  if(nEl) nEl.value = p.navDelta!=null ? p.navDelta.toFixed(2)+' s ('+Math.round(p.navAsymPct)+'%) · '+band('navAsym',p.navAsymPct).lab : '';
   const chip=(k,v,c,sev)=>`<div class="bmi-chip ${sev||''}"><span class="light ${sev||'none'}"></span><div class="chip-body"><div class="k">${k}</div><div class="v">${v}</div>${c?`<div class="c">${c}</div>`:''}</div></div>`;
   const chips=[];
+  chips.push(chip('Fascia', AGE_GROUP_LABEL[p.fascia]));
   if(p.peso>0) chips.push(chip('Peso',p.peso+' kg'));
   if(p.alt>0) chips.push(chip('Altezza',p.alt+' cm'));
   testSemaforo().forEach(r=>chips.push(chip(r.label,r.value,r.note,r.sev)));
   if(chips.length){ el.innerHTML=chips.join(''); el.classList.remove('hidden'); } else el.classList.add('hidden');
 }
-['f-peso','f-altezza','f-cmj','f-sar','f-hop-tc','f-hop-tf','f-pullup','f-plank'].forEach(id=>document.getElementById(id).addEventListener('input',refreshBMI));
+['f-peso','f-altezza','f-cmj','f-sar','f-hop-tc','f-hop-tf','f-pushup','f-pullup','f-plank','f-nav-dx','f-nav-sx'].forEach(id=>document.getElementById(id).addEventListener('input',refreshBMI));
+document.getElementById('f-fascia').addEventListener('change',refreshBMI);
 
 /* ---------- Functional Movement Screen ---------- */
 const FMS_TESTS=[
@@ -1037,14 +1114,16 @@ function collectAllData(){
   const posture=[];
   Object.values(state.results||{}).forEach(r=>{ if(r&&!r.error) r.metrics.forEach(m=>posture.push({vista:r.label, parametro:m.label, valore:m.val, esito:SEV[m.sev], dettaglio:m.sub||''})); });
   return {
-    soggetto:{ nome:val('f-nome')||'—', eta:val('f-eta')||'—', livello:val('f-pos')||'non indicato', mano_dominante:val('f-mano')||'non indicata', sport:'Tennis · Circolo Tennis Scaligero' },
+    soggetto:{ nome:val('f-nome')||'—', eta:val('f-eta')||'—', livello:val('f-pos')||'non indicato', mano_dominante:val('f-mano')||'non indicata', fascia_riferimento:AGE_GROUP_LABEL[p.fascia], sport:'Tennis · Circolo Tennis Scaligero' },
     antropometria:{ peso:p.peso||null, altezza:p.alt||null, bmi:p.bmi?+p.bmi.toFixed(1):null },
     test:{
       cmj_cm:p.cmj||null,
       rsi_7salti:p.rsi?+p.rsi.toFixed(2):null, stiffness_dettaglio:p.rsi?`t contatto ${p.hopTc} ms, t volo ${p.hopTf} ms${p.jumpH?', h volo '+p.jumpH.toFixed(0)+' cm':''}${p.kvert?', rigidità verticale '+p.kvert.toFixed(1)+' kN/m':''}`:null,
       sit_and_reach_cm:isNaN(p.sar)?null:p.sar,
+      piegamenti_braccia_rip:p.pushups||null,
       trazioni_isometriche_s:p.pullup||null,
-      plank_s:p.plank||null
+      plank_s:p.plank||null,
+      navetta_cod:(p.navDelta!=null)?{ dx:p.navDx, sx:p.navSx, delta:+p.navDelta.toFixed(2), asimmetria_pct:Math.round(p.navAsymPct), lato_migliore:p.navFaster, sev:band('navAsym',p.navAsymPct).sev }:null
     },
     fms:{ totale:fms.anyEntered?fms.total:null, su:21, completo:fms.complete, soglia_rischio:'≤14', segnalazioni:fms.flags,
       dettaglio:fms.anyEntered?fms.tests.map(t=>({test:t.name, punteggio:t.score, sx:t.l, dx:t.r})):[] },
@@ -1056,7 +1135,8 @@ function localEvaluation(d){
   const t=d.test, a=d.antropometria, f=d.fms; const P=[];
   const liv=d.soggetto.livello&&d.soggetto.livello!=='non indicato'?', '+d.soggetto.livello.toLowerCase():'';
   const mano=d.soggetto.mano_dominante&&d.soggetto.mano_dominante!=='non indicata'?', dominanza '+d.soggetto.mano_dominante.toLowerCase():'';
-  P.push(`Profilo di ${d.soggetto.nome!=='—'?d.soggetto.nome:'atleta'}${d.soggetto.eta!=='—'?', '+d.soggetto.eta+' anni':''}${liv}${mano} — tennis agonistico. Sintesi automatica integrata di test fisici, screening del movimento e analisi posturale, letta in chiave tennistica (spostamenti laterali, split-step, decelerazioni e ripartenze, servizio e rotazioni del tronco).`);
+  const fasc=d.soggetto.fascia_riferimento?` Bande di riferimento applicate: fascia ${d.soggetto.fascia_riferimento.toLowerCase()}.`:'';
+  P.push(`Profilo di ${d.soggetto.nome!=='—'?d.soggetto.nome:'atleta'}${d.soggetto.eta!=='—'?', '+d.soggetto.eta+' anni':''}${liv}${mano} — tennis agonistico. Sintesi automatica integrata di test fisici, screening del movimento e analisi posturale, letta in chiave tennistica (spostamenti laterali, split-step, decelerazioni e ripartenze, servizio e rotazioni del tronco).${fasc}`);
   // forza esplosiva e reattiva
   const expl=[];
   if(t.cmj_cm){ const b=band('cmj',t.cmj_cm); expl.push(`CMJ ${t.cmj_cm} cm (${b.lab.toLowerCase()})`); }
@@ -1064,9 +1144,19 @@ function localEvaluation(d){
   if(expl.length) P.push(`FORZA ESPLOSIVA ED ELASTICA: ${expl.join(', ')}. Il CMJ descrive la potenza concentrica, il test dei 7 salti la rigidità (stiffness) e la reattività del piede-caviglia: nel tennis una buona stiffness rende più rapidi split-step, ripartenze e cambi di direzione. Se l'RSI è basso rispetto al CMJ, l'enfasi va su pliometria a basso tempo di contatto e lavoro di caviglia.`);
   // forza + core
   const str=[];
-  if(t.trazioni_isometriche_s) str.push(`tenuta isometrica alla sbarra ${t.trazioni_isometriche_s} s (forza isometrica dorsali e presa)`);
-  if(t.plank_s) str.push(`plank ${t.plank_s} s (resistenza del core)`);
-  if(str.length) P.push(`FORZA E RESISTENZA: ${str.join('; ')}. Core e catena posteriore sono determinanti per la stabilità del tronco nel servizio e nei colpi in spostamento e per prevenire sovraccarichi lombari e di spalla.`);
+  if(t.piegamenti_braccia_rip){ const b=band('pushup',t.piegamenti_braccia_rip); str.push(`piegamenti sulle braccia ${t.piegamenti_braccia_rip} ripetizioni (${b.lab.toLowerCase()}, forza resistente di spinta)`); }
+  if(t.trazioni_isometriche_s){ const b=band('pullup',t.trazioni_isometriche_s); str.push(`tenuta isometrica alla sbarra ${t.trazioni_isometriche_s} s (${b.lab.toLowerCase()}, forza dorsali e presa)`); }
+  if(t.plank_s){ const b=band('plank',t.plank_s); str.push(`plank ${t.plank_s} s (${b.lab.toLowerCase()}, resistenza del core)`); }
+  if(str.length) P.push(`FORZA E RESISTENZA: ${str.join('; ')}. Core, spinta e catena posteriore sono determinanti per la stabilità del tronco nel servizio e nei colpi in spostamento e per prevenire sovraccarichi lombari e di spalla.`);
+  // agilità / cambio di direzione (Catizone)
+  if(t.navetta_cod){
+    const n=t.navetta_cod;
+    let s=`AGILITÀ E CAMBIO DI DIREZIONE (navetta 5m x4, confronto fra i due lati): piede destro ${n.dx} s, piede sinistro ${n.sx} s; lato più rapido ${n.lato_migliore}, differenza ${n.delta} s (${n.asimmetria_pct}%). `;
+    s += n.sev==='ok' ? 'Differenza fra i due lati contenuta: buona simmetria nel cambio di direzione.'
+       : n.sev==='warn' ? 'Lieve asimmetria fra i due lati: da monitorare con lavoro bilaterale mirato.'
+       : 'Asimmetria marcata fra i due lati: da colmare con lavoro dedicato sul lato più lento, soprattutto nei più giovani.';
+    P.push(s);
+  }
   // flessibilità + BMI
   const misc=[];
   if(t.sit_and_reach_cm!==null){ const b=band('sar',t.sit_and_reach_cm); misc.push(`Sit & Reach ${t.sit_and_reach_cm} cm (${b.lab.toLowerCase()}): flessibilità della catena posteriore`); }
@@ -1091,15 +1181,18 @@ function localEvaluation(d){
   if(t.rsi_7salti){ const b=band('rsi',t.rsi_7salti); if(b.sev!=='ok') prio.push('sviluppo della rigidità/reattività (pliometria a basso tempo di contatto)'); }
   if(t.cmj_cm){ const b=band('cmj',t.cmj_cm); if(b.sev==='bad') prio.push('incremento della forza esplosiva degli arti inferiori'); }
   if(t.sit_and_reach_cm!==null){ const b=band('sar',t.sit_and_reach_cm); if(b.sev==='bad') prio.push('mobilità della catena posteriore'); }
+  if(t.navetta_cod && t.navetta_cod.sev!=='ok') prio.push('riduzione dell\'asimmetria nel cambio di direzione fra le due gambe');
   if(d.postura&&d.postura.some(x=>x.esito==='Marcato')) prio.push('lavoro correttivo sulle asimmetrie posturali marcate');
   P.push('PRIORITÀ DI LAVORO: '+(prio.length?prio.join('; ')+'.':'mantenimento e progressione equilibrata di forza, potenza, reattività e mobilità, con monitoraggio periodico.'));
   // consigli concreti
   const adv=[];
   if(t.rsi_7salti){ const b=band('rsi',t.rsi_7salti); if(b.sev!=='ok') adv.push('reattività/stiffness — pliometria a basso tempo di contatto (pogo, hopping, rimbalzi, ankle stiffness drills) 2 sedute/sett.'); }
   if(t.cmj_cm){ const b=band('cmj',t.cmj_cm); if(b.sev!=='ok') adv.push('forza esplosiva arti inferiori — squat jump, mezzo squat pesante + salti (metodo contrasto), trap-bar jump'); }
+  if(t.piegamenti_braccia_rip){ const b=band('pushup',t.piegamenti_braccia_rip); if(b.sev!=='ok') adv.push('forza di spinta — piegamenti progressivi, distensioni con manubri/bilanciere, push-up zavorrati'); }
   if(t.trazioni_isometriche_s){ const b=band('pullup',t.trazioni_isometriche_s); if(b.sev!=='ok') adv.push('forza di trazione e presa — rematori, lat machine, tenute/hang progressive'); }
   if(t.plank_s){ const b=band('plank',t.plank_s); if(b.sev!=='ok') adv.push('core — anti-estensione e anti-rotazione (plank evoluti, Pallof press, dead bug), utili per servizio e stabilità del tronco'); }
   if(t.sit_and_reach_cm!==null){ const b=band('sar',t.sit_and_reach_cm); if(b.sev!=='ok') adv.push('mobilità catena posteriore — hip hinge, stretching dinamico ischiocrurali, nordic hamstring eccentrico'); }
+  if(t.navetta_cod && t.navetta_cod.sev!=='ok') adv.push('cambio di direzione — lavoro unilaterale sul lato più lento (decelerazioni e frenate, ripartenze in open stance, tecnica del passo), forza eccentrica di quadricipiti e adduttori');
   if(f.totale!==null&&f.totale<=14) adv.push('qualità del movimento — correttivi sui pattern FMS più bassi e lavoro unilaterale per le asimmetrie, prima di aumentare i carichi');
   if(d.postura&&d.postura.some(x=>x.esito==='Marcato')) adv.push('correttivi posturali mirati sui rilievi marcati, con rivalutazione periodica');
   adv.push('lavoro specifico tennis — agilità multidirezionale, decelerazioni e cambi di direzione, cura del lato dominante (spalla/polso) e del non dominante per il riequilibrio');
@@ -1161,8 +1254,8 @@ function shrink(srcCanvas,maxW){
   return c.toDataURL('image/jpeg',0.72);
 }
 
-const FIELD_IDS=['f-nome','f-nascita','f-eta','f-pos','f-mano','f-op','f-ruolo','f-peso','f-altezza','f-cmj','f-sar','f-hop-tc','f-hop-tf','f-pullup','f-plank','f-note','ai-eval'];
-const ATHLETE_FIELDS=['f-nome','f-nascita','f-eta','f-pos','f-mano','f-peso','f-altezza','f-cmj','f-sar','f-hop-tc','f-hop-tf','f-pullup','f-plank','f-note','ai-eval'];
+const FIELD_IDS=['f-nome','f-nascita','f-eta','f-pos','f-mano','f-fascia','f-op','f-ruolo','f-peso','f-altezza','f-cmj','f-sar','f-hop-tc','f-hop-tf','f-pushup','f-pullup','f-plank','f-nav-dx','f-nav-sx','f-note','ai-eval'];
+const ATHLETE_FIELDS=['f-nome','f-nascita','f-eta','f-pos','f-mano','f-fascia','f-peso','f-altezza','f-cmj','f-sar','f-hop-tc','f-hop-tf','f-pushup','f-pullup','f-plank','f-nav-dx','f-nav-sx','f-note','ai-eval'];
 function fmsFieldIds(){ const ids=[]; FMS_TESTS.forEach(t=>{ if(t.bi) ids.push('fms-'+t.key+'-L','fms-'+t.key+'-R'); else ids.push('fms-'+t.key); }); return ids; }
 function escapeHtml(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
 function fmtDate(iso){ if(!iso) return '—'; try{ return new Date(iso).toLocaleDateString('it-IT'); }catch(e){ return iso; } }
