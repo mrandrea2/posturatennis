@@ -104,6 +104,28 @@ select{width:100%;background:#fff;border:1.5px solid var(--border-strong);color:
 .fms-flags{flex-basis:100%;display:flex;flex-direction:column;gap:9px;margin-top:6px}
 .fms-flags .flag{font-size:14.5px;color:var(--warn);font-weight:500;display:flex;gap:8px;align-items:flex-start}
 
+/* FMS · riprese e proposta IA */
+.fms-test{background:var(--bg2);border:1.5px solid var(--border);border-radius:12px;padding:14px 15px}
+.fms-media{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.fm-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.fm-side{font-family:var(--mono);font-size:11px;font-weight:600;color:var(--muted);min-width:22px}
+.fm-btn{font-family:var(--sans);font-size:13px;font-weight:600;background:#fff;border:1.5px dashed var(--border-strong);border-radius:8px;padding:6px 10px;cursor:pointer;color:var(--ink)}
+.fm-btn:hover{border-color:var(--green);background:var(--green-soft)}
+.fm-thumbs{display:flex;gap:4px}
+.fm-thumbs img{width:38px;height:50px;object-fit:cover;border-radius:5px;border:1px solid var(--border-strong);background:#dfe6e1}
+.fm-x{border:none;background:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 4px}
+.fm-info{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.fms-sugg{margin-top:4px;border-left:4px solid var(--yellow);background:var(--yellow-soft);border-radius:8px;padding:9px 11px;font-size:13.5px;line-height:1.45}
+.fms-sugg .sg-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:700}
+.fms-sugg .sg-score{font-family:var(--display);font-size:19px;font-weight:800}
+.fms-sugg .sg-conf{font-family:var(--mono);font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.fms-sugg .sg-diff{font-family:var(--mono);font-size:10.5px;font-weight:600;color:var(--l3);text-transform:uppercase}
+.fms-sugg .sg-m{margin-top:4px;color:var(--ink)}
+.fms-sugg .sg-c{margin-top:3px;color:var(--muted);font-size:12.5px}
+.fms-sugg button{font-family:var(--sans);font-size:12.5px;font-weight:700;background:var(--green);color:#fff;border:none;border-radius:7px;padding:4px 10px;cursor:pointer;margin-left:auto}
+.fms-sugg.err{border-left-color:var(--bad);background:#FBE6E6}
+.fms-ai-bar{margin-top:20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;border-top:2px solid var(--border);padding-top:18px}
+
 /* UPLOAD */
 .uploads{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 @media(max-width:860px){.uploads{grid-template-columns:repeat(2,1fr)}}
@@ -308,8 +330,15 @@ footer{border-top:4px solid var(--green);margin-top:70px;padding:30px 0 50px}
     <p class="sec-sub">Rilevazione della qualità del movimento e della postura dinamica, da leggere insieme alle foto.</p>
     <div class="card">
       <div id="fms-grid" class="fms-grid"></div>
+      <div class="fms-ai-bar">
+        <button class="btn btn-primary btn-sm" id="btn-fms-ai">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4L12 3z"/></svg>
+          Proponi punteggi con IA</button>
+        <button class="btn btn-ghost btn-sm hidden" id="btn-fms-accept">Usa tutte le proposte</button>
+        <span class="status" id="fms-ai-status">Carica una foto o un video breve per i test che vuoi far leggere all'IA (frontale o laterale, corpo intero). Il punteggio resta tuo: la proposta va confermata.</span>
+      </div>
       <div id="fms-readout" class="fms-readout hidden"></div>
-      <div class="ref-note">Punteggio 0–3 per test (0 = dolore · 1 = non esegue · 2 = compensi · 3 = corretto). Nei test bilaterali vale il punteggio più basso fra i due lati; le asimmetrie Sx≠Dx vengono segnalate. Totale su 21; la soglia ≤ 14 è quella più citata in letteratura come associata a maggior rischio infortuni: è un'indicazione di screening, non una diagnosi.</div>
+      <div class="ref-note">Punteggio 0–3 per test (0 = dolore · 1 = non esegue · 2 = compensi · 3 = corretto). Nei test bilaterali vale il punteggio più basso fra i due lati; le asimmetrie Sx≠Dx vengono segnalate. Totale su 21; la soglia ≤ 14 è quella più citata in letteratura come associata a maggior rischio infortuni: è un'indicazione di screening, non una diagnosi. La proposta IA dalle riprese non valuta il dolore né i test di clearing (spalla, estensione e flessione del tronco), che restano da fare in presenza; per lo Shoulder Mobility la distanza tra i pugni va misurata.</div>
     </div>
   </section>
 
@@ -558,6 +587,131 @@ function renderFMS(){
   el.innerHTML=html; el.classList.remove('hidden');
 }
 fmsGrid.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{renderFMS();}));
+
+/* ---------- FMS · riprese (foto o video) e proposta di punteggio IA ---------- */
+const FMS_AI_ENDPOINT='/api/fms';
+state.fmsMedia={};   // 'squat' | 'hurdle-L' ... -> {frames:[dataURL], kind, name}
+state.fmsAI={};      // test key -> {lati:[{lato,punteggio,confidenza,motivazione,compensi}], nota}
+function fmsSlots(t){ return t.bi?[t.key+'-L',t.key+'-R']:[t.key]; }
+function sideOf(slot){ return slot.endsWith('-L')?'Sx':(slot.endsWith('-R')?'Dx':null); }
+function toJpeg(src,maxSide,q){ const w=src.videoWidth||src.naturalWidth||src.width, h=src.videoHeight||src.naturalHeight||src.height;
+  const s=Math.min(1,maxSide/Math.max(w,h)); const c=document.createElement('canvas'); c.width=Math.round(w*s); c.height=Math.round(h*s);
+  c.getContext('2d').drawImage(src,0,0,c.width,c.height); return c.toDataURL('image/jpeg',q); }
+function imageFromBlob(blob){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('img')); im.src=URL.createObjectURL(blob); }); }
+async function videoFrames(file,n){
+  const url=URL.createObjectURL(file); const v=document.createElement('video');
+  v.muted=true; v.playsInline=true; v.preload='auto'; v.src=url;
+  try{
+    await new Promise((res,rej)=>{ const to=setTimeout(()=>rej(new Error('timeout')),20000);
+      v.onloadeddata=()=>{ clearTimeout(to); res(); }; v.onerror=()=>{ clearTimeout(to); rej(new Error('video')); }; v.load(); });
+    const d=v.duration; if(!isFinite(d)||d<=0) throw new Error('durata');
+    const seek=t=>new Promise((res,rej)=>{ const to=setTimeout(()=>rej(new Error('seek')),8000); v.onseeked=()=>{ clearTimeout(to); res(); }; v.currentTime=t; });
+    const out=[];
+    for(let i=0;i<n;i++){ await seek(Math.min(d-0.05,d*(0.06+0.88*i/(n-1)))); out.push(toJpeg(v,640,0.74)); }
+    return out;
+  } finally { URL.revokeObjectURL(url); }
+}
+async function loadFmsMedia(slot,file){
+  const st=document.getElementById('fms-ai-status');
+  try{
+    let frames, kind;
+    if(/^video\//.test(file.type)||/\.(mov|mp4|m4v|webm)$/i.test(file.name||'')){
+      st.innerHTML='<span class="spinner"></span>Estrazione fotogrammi dal video...'; st.className='status work';
+      frames=await videoFrames(file,5); kind='video';
+    } else {
+      let blob=file;
+      if(/image\/hei[cf]/i.test(file.type)||/\.hei[cf]$/i.test(file.name||'')){ const conv=await loadHeic2any(); const o=await conv({blob:file,toType:'image/jpeg',quality:0.9}); blob=Array.isArray(o)?o[0]:o; }
+      frames=[toJpeg(await imageFromBlob(blob),900,0.8)]; kind='foto';
+    }
+    const mid=new Image(); mid.src=frames[Math.floor(frames.length/2)]; try{ await mid.decode(); }catch(_){}
+    const c=document.createElement('canvas'); c.width=150; c.height=200; const g=c.getContext('2d');
+    const sc=Math.max(150/(mid.naturalWidth||150),200/(mid.naturalHeight||200)); g.drawImage(mid,(150-mid.naturalWidth*sc)/2,(200-mid.naturalHeight*sc)/2,mid.naturalWidth*sc,mid.naturalHeight*sc);
+    state.fmsMedia[slot]={frames,kind,name:file.name||'',thumb:c.toDataURL('image/jpeg',0.7)};
+    const key=slot.replace(/-[LR]$/,''); delete state.fmsAI[key];
+    st.textContent='Ripresa caricata. Premi «Proponi punteggi con IA» quando hai caricato i test che ti servono.'; st.className='status';
+  }catch(e){
+    console.error('FMS media',e);
+    st.textContent = e.message==='video'||e.message==='timeout'
+      ? 'Questo video non si apre nel browser (spesso i .mov HEVC dell\'iPhone su Windows/Chrome). Prova da Safari, oppure registra in «Più compatibile» o carica una foto.'
+      : 'Impossibile leggere il file. Usa JPG, PNG, MP4 o MOV.';
+    st.className='status err';
+  }
+  renderFmsMedia();
+}
+// costruisce i controlli dentro ogni scheda FMS
+FMS_TESTS.forEach((t,i)=>{
+  const card=fmsGrid.children[i]; const box=document.createElement('div'); box.className='fms-media'; box.id='fmsm-'+t.key;
+  card.appendChild(box);
+});
+function renderFmsMedia(){
+  FMS_TESTS.forEach(t=>{
+    const box=document.getElementById('fmsm-'+t.key); let h='';
+    fmsSlots(t).forEach(slot=>{
+      const m=state.fmsMedia[slot], side=sideOf(slot);
+      h+=`<div class="fm-row">${side?`<span class="fm-side">${side}</span>`:''}`;
+      if(m&&m.frames&&m.frames.length){
+        h+=`<span class="fm-thumbs">${m.frames.slice(0,5).map(f=>`<img src="${f}" alt="">`).join('')}</span><span class="fm-info">${m.kind}${m.thumbOnly?' · salvata (ricarica per una nuova lettura IA)':(m.kind==='video'?' · '+m.frames.length+' fotogrammi':'')}</span><button class="fm-x" type="button" data-rm="${slot}" title="Rimuovi">×</button>`;
+      } else h+=`<button class="fm-btn" type="button" data-up="${slot}">+ foto o video</button>`;
+      h+='</div>';
+    });
+    const ai=state.fmsAI[t.key];
+    if(ai&&ai.error) h+=`<div class="fms-sugg err">${escapeHtml(ai.error)}</div>`;
+    else if(ai&&ai.lati) ai.lati.forEach(l=>{
+      const sel=document.getElementById('fms-'+t.key+(t.bi?(l.lato==='Sx'?'-L':'-R'):'')); const cur=sel&&sel.value!==''?parseInt(sel.value,10):null;
+      const sc=l.punteggio;
+      h+=`<div class="fms-sugg"><div class="sg-h">IA${l.lato?' · '+l.lato:''}: <span class="sg-score">${sc==null?'n.d.':sc}</span><span class="sg-conf">confidenza ${escapeHtml(l.confidenza||'—')}</span>${cur!==null&&sc!=null&&cur!==sc?`<span class="sg-diff">diverso dal tuo (${cur})</span>`:''}${sc!=null&&cur!==sc?`<button type="button" data-acc="${t.key}|${l.lato||''}">Usa ${sc}</button>`:''}</div>
+        <div class="sg-m">${escapeHtml(l.motivazione||'')}</div>${l.compensi&&l.compensi.length?`<div class="sg-c">Compensi: ${escapeHtml(l.compensi.join(', '))}</div>`:''}</div>`;
+    });
+    box.innerHTML=h;
+  });
+  const anyAcc=document.querySelector('[data-acc]');
+  document.getElementById('btn-fms-accept').classList.toggle('hidden',!anyAcc);
+}
+const fmsPicker=document.createElement('input'); fmsPicker.type='file'; fmsPicker.accept='image/*,video/*,.heic,.heif,.mov,.mp4'; fmsPicker.hidden=true; document.body.appendChild(fmsPicker);
+let fmsPickSlot=null;
+fmsPicker.addEventListener('change',e=>{ const f=e.target.files[0]; e.target.value=''; if(f&&fmsPickSlot) loadFmsMedia(fmsPickSlot,f); });
+function acceptSugg(key,lato){
+  const t=FMS_TESTS.find(x=>x.key===key); const ai=state.fmsAI[key]; if(!t||!ai||!ai.lati) return;
+  const l=ai.lati.find(x=>(x.lato||'')===lato); if(!l||l.punteggio==null) return;
+  const sel=document.getElementById('fms-'+key+(t.bi?(lato==='Sx'?'-L':'-R'):'')); if(sel){ sel.value=String(l.punteggio); }
+}
+fmsGrid.addEventListener('click',e=>{
+  const up=e.target.closest('[data-up]'), rm=e.target.closest('[data-rm]'), acc=e.target.closest('[data-acc]');
+  if(up){ fmsPickSlot=up.dataset.up; fmsPicker.click(); }
+  else if(rm){ delete state.fmsMedia[rm.dataset.rm]; delete state.fmsAI[rm.dataset.rm.replace(/-[LR]$/,'')]; renderFmsMedia(); }
+  else if(acc){ const [k,l]=acc.dataset.acc.split('|'); acceptSugg(k,l); renderFMS(); renderFmsMedia(); }
+});
+fmsGrid.addEventListener('change',e=>{ if(e.target.tagName==='SELECT') renderFmsMedia(); });
+document.getElementById('btn-fms-accept').addEventListener('click',()=>{
+  document.querySelectorAll('[data-acc]').forEach(b=>{ const [k,l]=b.dataset.acc.split('|'); acceptSugg(k,l); });
+  renderFMS(); renderFmsMedia(); autoSave('FMS');
+});
+document.getElementById('btn-fms-ai').addEventListener('click',async ()=>{
+  const st=document.getElementById('fms-ai-status'), btn=document.getElementById('btn-fms-ai');
+  const jobs=FMS_TESTS.filter(t=>fmsSlots(t).some(s=>state.fmsMedia[s]));
+  if(!jobs.length){ st.textContent='Carica almeno una foto o un video in un test FMS.'; st.className='status err'; return; }
+  btn.disabled=true; const a=athleteInfo(); let done=0, fail=0;
+  st.innerHTML=`<span class="spinner"></span>Lettura delle riprese: 0 di ${jobs.length} test...`; st.className='status work';
+  const run=async t=>{
+    const slots=fmsSlots(t).filter(s=>state.fmsMedia[s]&&!state.fmsMedia[s].thumbOnly);
+    if(!slots.length){ state.fmsAI[t.key]=state.fmsAI[t.key]||{error:'Ricarica la ripresa: in archivio è salvata solo la miniatura.'}; done++; return; }
+    const lati=slots.map(s=>({lato:sideOf(s),frames:state.fmsMedia[s].frames.map(f=>f.split(',')[1])}));
+    try{
+      const ctrl=new AbortController(); const to=setTimeout(()=>ctrl.abort(),90000);
+      let r; try{ r=await fetch(FMS_AI_ENDPOINT,{method:'POST',headers:{'Content-Type':'application/json'},signal:ctrl.signal,
+        body:JSON.stringify({test:t.key,sesso:a.sesso||null,eta:a.eta,lati})}); } finally{ clearTimeout(to); }
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      const j=await r.json(); if(!j||!Array.isArray(j.lati)) throw new Error('risposta');
+      state.fmsAI[t.key]={lati:j.lati.map(l=>({lato:l.lato||null,punteggio:[1,2,3].includes(l.punteggio)?l.punteggio:null,confidenza:String(l.confidenza||''),motivazione:String(l.motivazione||''),compensi:Array.isArray(l.compensi)?l.compensi.map(String).slice(0,6):[]})),nota:String(j.nota||''),model:j.model||''};
+    }catch(e){ console.warn('FMS IA',t.key,e); fail++; state.fmsAI[t.key]={error:'Proposta non disponibile: servizio IA non raggiungibile o risposta non valida.'}; }
+    done++; st.innerHTML=`<span class="spinner"></span>Lettura delle riprese: ${done} di ${jobs.length} test...`; renderFmsMedia();
+  };
+  const queue=[...jobs]; await Promise.all([0,1,2].map(async()=>{ while(queue.length) await run(queue.shift()); }));
+  btn.disabled=false;
+  if(fail===jobs.length){ st.textContent='Servizio IA non raggiungibile: la proposta funziona solo con l\'app pubblicata su Vercel e la chiave Anthropic configurata.'; st.className='status err'; }
+  else { st.textContent=`Proposte pronte per ${jobs.length-fail} test${fail?' ('+fail+' non riusciti)':''}. Controllale e premi «Usa» dove sei d'accordo: dolore e test di clearing restano da valutare in presenza.`; st.className='status'; autoSave('FMS'); }
+});
+
 
 /* ---------- Costruzione slot upload ---------- */
 const uploadsEl = document.getElementById('uploads');
@@ -912,9 +1066,22 @@ function collectAllData(){
     differenza_5x4_meno_20m:p.diff?{ valore_s:+p.diff.value.toFixed(2), soglia_fascia_s:p.diff.soglia, lettura:p.diff.ok?'movimento efficace':'gioco di gambe da correggere' }:null,
     sintesi_atletica:p.giudizio?{ media_livelli:p.media, giudizio:p.giudizio, test_valutati:p.n, scala:'1 Ottimo · 2 Buono · 3 Sufficiente · 4 Scarso' }:null,
     fms:fms.anyEntered?{ totale:fms.total, su:21, completo:fms.complete, soglia_rischio:'<=14', segnalazioni:fms.flags,
-      dettaglio:fms.tests.filter(t=>t.score!==null).map(t=>({test:t.name, punteggio:t.score, sx:t.l??null, dx:t.r??null})) }:null,
+      dettaglio:fms.tests.filter(t=>t.score!==null).map(t=>({test:t.name, punteggio:t.score, sx:t.l??null, dx:t.r??null})),
+      osservazioni_riprese:fmsObservations() }:null,
     postura_foto:postura
   };
+}
+
+function fmsObservations(){
+  const out=[];
+  FMS_TESTS.forEach(t=>{ const ai=state.fmsAI[t.key]; if(!ai||!ai.lati) return;
+    ai.lati.forEach(l=>out.push({test:t.name, lato:l.lato, punteggio_proposto_ia:l.punteggio, confidenza:l.confidenza, osservazione:l.motivazione, compensi:l.compensi})); });
+  return out.length?out:null;
+}
+function fmsThumbs(){ // per l'archivio: una miniatura per ripresa (i fotogrammi completi non si salvano)
+  const o={}; Object.entries(state.fmsMedia||{}).forEach(([k,m])=>{ if(!m||!m.frames||!m.frames.length) return;
+    o[k]={kind:m.kind,frames:m.thumbOnly?m.frames:[m.thumb||m.frames[0]]}; });
+  return o;
 }
 function hasAnyData(d){ return d.test_atletici.length>0 || !!d.fms || d.postura_foto.length>0; }
 
@@ -1320,6 +1487,15 @@ function genPDF(){
     y+=15;
     fms.flags.forEach(fl=>para('•  '+fl,{size:9,color:SEVc.warn,gap:0.6}));
     y+=3;
+    const obs=fmsObservations();
+    if(obs){
+      label('Osservazioni dalle riprese (lettura IA)');
+      doc.autoTable(Object.assign(tableBase(),{ startY:y, head:[['Test','Lato','IA','Osservazione']],
+        columnStyles:{0:{fontStyle:'bold',cellWidth:42},1:{cellWidth:13,halign:'center'},2:{cellWidth:12,halign:'center',fontStyle:'bold'},3:{fontSize:8.4}},
+        body:obs.map(o=>[S(o.test),S(o.lato||'-'),S(o.punteggio_proposto_ia==null?'n.d.':String(o.punteggio_proposto_ia)),S(o.osservazione+(o.compensi&&o.compensi.length?' Compensi: '+o.compensi.join(', ')+'.':''))]) }));
+      y=doc.lastAutoTable.finalY+3;
+      para('Punteggi proposti dall\'IA a partire da foto o fotogrammi video, come supporto: il punteggio FMS riportato sopra è quello assegnato dal preparatore.',{size:7.8,color:MUTED,gap:4});
+    }
   }
 
   // ---- POSTURA (FOTO) ----
@@ -1545,7 +1721,8 @@ function gatherRecord(existingId){
   Object.entries(state.results||{}).forEach(([k,r])=>{ if(r&&!r.error) results[k]={label:r.label, png:r.pngStore||r.png, canvasW:r.canvasW, canvasH:r.canvasH, conf:r.conf, error:false, metrics:r.metrics}; });
   return { id: existingId || ('atl_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)),
            nome: (document.getElementById('f-nome').value.trim()||'Senza nome'),
-           updatedAt: new Date().toISOString(), fields, fms, results, evalData:state.evalData, evalSource:state.evalSource };
+           updatedAt: new Date().toISOString(), fields, fms, results, evalData:state.evalData, evalSource:state.evalSource,
+           fmsAI:state.fmsAI, fmsThumbs:fmsThumbs() };
 }
 function clearPhotos(){ VIEWS.forEach(v=>clearSlot(v.key)); state.results={}; document.getElementById('views-out').innerHTML=''; document.getElementById('results').style.display='none'; }
 function applyRecord(rec){
@@ -1556,7 +1733,8 @@ function applyRecord(rec){
   state.results = rec.results || {};
   if(Object.keys(state.results).length) renderResults();
   state.evalData=normalizeEval(rec.evalData); state.evalSource=rec.evalSource||'';
-  updateAge(); refreshAll(); renderFMS(); renderEval();
+  state.fmsAI=rec.fmsAI||{}; state.fmsMedia={}; Object.entries(rec.fmsThumbs||{}).forEach(([k,f])=>{ state.fmsMedia[k]={frames:f.frames,kind:f.kind,name:'',thumbOnly:true}; });
+  updateAge(); refreshAll(); renderFMS(); renderEval(); renderFmsMedia();
 }
 
 let currentAthleteId=null;
@@ -1574,8 +1752,8 @@ function newAthlete(){
   FIELD_IDS.filter(id=>!KEEP_ON_NEW.includes(id)).forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   fmsFieldIds().forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('f-data').value=new Date().toISOString().slice(0,10);
-  clearPhotos(); state.evalData=null; state.evalSource='';
-  refreshAll(); renderFMS(); renderEval();
+  clearPhotos(); state.evalData=null; state.evalSource=''; state.fmsAI={}; state.fmsMedia={};
+  refreshAll(); renderFMS(); renderEval(); renderFmsMedia();
 }
 document.getElementById('athlete-select').addEventListener('change', async e=>{
   const id=e.target.value;
@@ -1606,7 +1784,7 @@ async function autoSave(what){
   await refreshRoster(currentAthleteId);
   setStatus(res.ok?('Salvataggio automatico ('+what+'): '+rec.nome+'  ✓'):'Salvataggio automatico non riuscito: premi «Salva scheda»');
 }
-refreshAll(); refreshRoster();
+refreshAll(); renderFmsMedia(); refreshRoster();
 
 // Aggancio per i test automatici (non usato dall'interfaccia)
 window.__cts={ REF, TESTS, profile, athleteInfo, levelOf, collectAllData, localEvaluation, normalizeEval, renderEval, renderResults, refreshAll, updateAge, renderFMS,

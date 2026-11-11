@@ -1,5 +1,6 @@
 {
   "functions": {
-    "api/evaluate.js": { "maxDuration": 60 }
+    "api/evaluate.js": { "maxDuration": 60 },
+    "api/fms.js": { "maxDuration": 60 }
   }
 }
