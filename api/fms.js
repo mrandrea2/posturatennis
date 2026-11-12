@@ -54,7 +54,13 @@ function system(c, sesso) {
     "- Motivazione in 1-2 frasi in italiano, legata ai criteri (es. «talloni sollevati per arrivare in basso, femore sotto l'orizzontale: 2»). Compensi: elenco breve di quelli visibili.",
     "- Non commentare aspetto fisico o identità della persona.",
     'Rispondi SOLO con JSON valido, senza testo prima o dopo: {"lati":[{"lato":"Sx"|"Dx"|null,"punteggio":1|2|3|null,"confidenza":"alta"|"media"|"bassa","motivazione":"...","compensi":["..."]}],"nota":"eventuale consiglio sulla ripresa, altrimenti stringa vuota"}',
-    c.bi ? "Restituisci un elemento per ogni lato ricevuto, con «lato» uguale a quello indicato." : "Test non bilaterale: un solo elemento con «lato» null.",
+    c.bi ? [
+      "Test bilaterale. Se le riprese sono già indicate come «Lato Sx» o «Lato Dx», restituisci un elemento per ciascun lato ricevuto.",
+      "Se ricevi un'unica ripresa, contiene l'esecuzione dei due lati uno dopo l'altro (di norma prima il destro e poi il sinistro, ma verificalo): individua in ogni fotogramma quale lato sta eseguendo secondo la definizione di lato del test e restituisci SEMPRE due elementi, uno con «lato» \"Dx\" e uno con «lato» \"Sx\".",
+      "Lato significa lato dell'atleta, non dell'immagine: in una ripresa frontale la parte sinistra dell'atleta appare a destra nella foto, in una ripresa da dietro coincide. Capisci prima da dove è ripreso (viso visibile = frontale).",
+      "Se un lato non compare nei fotogrammi o non riesci ad attribuirlo con sicurezza, per quel lato metti punteggio null e spiegalo; se l'attribuzione Sx/Dx è incerta usa confidenza «bassa».",
+      "Se l'inquadratura non è adatta al test (es. Active Straight-Leg Raise, Trunk Stability Push-Up o Rotary Stability ripresi solo di fronte), dillo nella «nota» e abbassa la confidenza."
+    ].join('\n') : "Test non bilaterale: un solo elemento con «lato» null. Se l'inquadratura non permette di vedere i criteri decisivi, dillo nella «nota».",
   ].join('\n');
 }
 
@@ -70,7 +76,7 @@ async function callClaude(key, model, sys, content) {
   const r = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
-    body: JSON.stringify({ model, max_tokens: 900, system: sys, messages: [{ role: 'user', content }] })
+    body: JSON.stringify({ model, max_tokens: 1200, system: sys, messages: [{ role: 'user', content }] })
   });
   return { ok: r.ok, status: r.status, raw: await r.text() };
 }
@@ -87,11 +93,12 @@ module.exports = async (req, res) => {
     const lati = (Array.isArray(body.lati) ? body.lati : []).slice(0, 2);
     const content = []; let n = 0;
     for (const l of lati) {
-      const frames = (Array.isArray(l.frames) ? l.frames : []).filter(f => typeof f === 'string' && f.length > 100 && f.length < 1500000).slice(0, 6);
+      const frames = (Array.isArray(l.frames) ? l.frames : []).filter(f => typeof f === 'string' && f.length > 100 && f.length < 1500000).slice(0, 12);
       if (!frames.length) continue;
       const lato = l.lato === 'Sx' || l.lato === 'Dx' ? l.lato : null;
-      content.push({ type: 'text', text: (lato ? `Lato ${lato}` : 'Ripresa') + (frames.length > 1 ? ` · ${frames.length} fotogrammi in ordine temporale` : ' · foto') });
-      frames.forEach(f => { content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f } }); n++; });
+      const intro = lato ? `Lato ${lato}` : (c.bi ? 'Ripresa unica con entrambi i lati' : 'Ripresa');
+      content.push({ type: 'text', text: intro + (frames.length > 1 ? ` · ${frames.length} fotogrammi in ordine temporale (F1 = inizio)` : ' · foto') });
+      frames.forEach((f, k) => { if (frames.length > 1) content.push({ type: 'text', text: `F${k + 1}` }); content.push({ type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: f } }); n++; });
     }
     if (!n) { res.status(400).json({ error: 'Nessuna immagine ricevuta' }); return; }
     content.push({ type: 'text', text: `Proponi il punteggio FMS per ${c.nome}${body.eta ? ` (atleta di ${body.eta} anni)` : ''} nel formato JSON indicato.` });
@@ -107,7 +114,10 @@ module.exports = async (req, res) => {
     const text = (j.content || []).filter(b => b.type === 'text').map(b => b.text || '').join('\n');
     const parsed = extractJson(text);
     if (!parsed || !Array.isArray(parsed.lati)) { res.status(502).json({ error: 'Risposta non in formato JSON', detail: text.slice(0, 400) }); return; }
-    parsed.lati = parsed.lati.map(l => Object.assign({}, l, { punteggio: [1, 2, 3].includes(l.punteggio) ? l.punteggio : null }));
+    parsed.lati = parsed.lati.map(l => Object.assign({}, l, {
+      lato: c.bi ? (l.lato === 'Sx' || l.lato === 'Dx' ? l.lato : null) : null,
+      punteggio: [1, 2, 3].includes(l.punteggio) ? l.punteggio : null }));
+    if (c.bi) parsed.lati.sort((a, b) => (a.lato === 'Sx' ? 0 : 1) - (b.lato === 'Sx' ? 0 : 1));
     res.status(200).json(Object.assign(parsed, { model: j.model || model }));
   } catch (e) {
     res.status(500).json({ error: 'Errore interno', detail: String((e && e.message) || e) });

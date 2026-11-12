@@ -4,7 +4,7 @@ App a pagina singola per il settore agonistico (a cura di Andrea Bertelli).
 
 - **Test atletici**: batteria CTS 2026/27 (sit and reach, salto in lungo, lancio dorsale, navetta 8×6, sprint 20 m, navetta 5×4, beep test) con livelli 1-4 sulle soglie del circolo per sesso e fascia d'età, differenza 5×4 − 20 m e giudizio complessivo. Stesse regole del foglio `test_2026_27.xlsx`.
 - **Postura**: FMS + foto (frontale, laterale, squat frontale e laterale) con pose estimation eseguita sul dispositivo.
-- **FMS da foto o video**: in ogni test si carica una foto o un video breve (per lato nei test bilaterali). L'app estrae 5 fotogrammi e `api/fms.js` chiede a Claude una proposta di punteggio 1-3 con motivazione e compensi visti. Il punteggio lo conferma il preparatore; dolore (0) e test di clearing non vengono valutati dall'IA.
+- **FMS da foto o video**: in ogni test si carica una foto o un video breve; nei test bilaterali basta un unico video con il lato destro e poi il sinistro. L'app estrae 5 fotogrammi (10 nei bilaterali) e `api/fms.js` chiede a Claude una proposta di punteggio 1-3 con motivazione e compensi visti. Il punteggio lo conferma il preparatore; dolore (0) e test di clearing non vengono valutati dall'IA.
 - **Analisi complessiva e piano di lavoro**: generati da Claude tramite `api/evaluate.js`; se il servizio non risponde l'app usa l'analisi locale a regole.
 - **Importa da Excel**: il pulsante legge il foglio «Dati test» di `test_2026_27.xlsx` e crea una scheda per ogni atleta. Reimportando il file aggiornato i risultati si aggiornano e foto e analisi già fatte restano. Si sceglie l'atleta, si caricano le foto e la scheda si salva da sola dopo l'analisi.
 - **Report PDF** con logo del circolo.

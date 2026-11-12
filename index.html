@@ -335,7 +335,7 @@ footer{border-top:4px solid var(--green);margin-top:70px;padding:30px 0 50px}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4L12 3z"/></svg>
           Proponi punteggi con IA</button>
         <button class="btn btn-ghost btn-sm hidden" id="btn-fms-accept">Usa tutte le proposte</button>
-        <span class="status" id="fms-ai-status">Carica una foto o un video breve per i test che vuoi far leggere all'IA (frontale o laterale, corpo intero). Il punteggio resta tuo: la proposta va confermata.</span>
+        <span class="status" id="fms-ai-status">Un video per test, corpo intero: nei test bilaterali l'atleta esegue prima il lato destro e poi il sinistro nella stessa ripresa. Sotto ogni test trovi l'inquadratura consigliata. Il punteggio resta tuo: controlla anche che Sx e Dx siano attribuiti bene.</span>
       </div>
       <div id="fms-readout" class="fms-readout hidden"></div>
       <div class="ref-note">Punteggio 0–3 per test (0 = dolore · 1 = non esegue · 2 = compensi · 3 = corretto). Nei test bilaterali vale il punteggio più basso fra i due lati; le asimmetrie Sx≠Dx vengono segnalate. Totale su 21; la soglia ≤ 14 è quella più citata in letteratura come associata a maggior rischio infortuni: è un'indicazione di screening, non una diagnosi. La proposta IA dalle riprese non valuta il dolore né i test di clearing (spalla, estensione e flessione del tronco), che restano da fare in presenza; per lo Shoulder Mobility la distanza tra i pugni va misurata.</div>
@@ -592,7 +592,18 @@ fmsGrid.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{r
 const FMS_AI_ENDPOINT='/api/fms';
 state.fmsMedia={};   // 'squat' | 'hurdle-L' ... -> {frames:[dataURL], kind, name}
 state.fmsAI={};      // test key -> {lati:[{lato,punteggio,confidenza,motivazione,compensi}], nota}
-function fmsSlots(t){ return t.bi?[t.key+'-L',t.key+'-R']:[t.key]; }
+// Una ripresa per test (nei bilaterali: un unico video con i due lati eseguiti uno dopo l'altro).
+// Le riprese separate Sx/Dx di schede salvate in passato restano visibili.
+function fmsSlots(t){ return [t.key].concat(t.bi?[t.key+'-L',t.key+'-R'].filter(s=>state.fmsMedia[s]):[]); }
+const FMS_VIEW={
+  squat:   {v:'frontale + laterale', n:'Solo frontale va bene per ginocchia e simmetria; per profondità e busto serve anche il laterale.'},
+  hurdle:  {v:'frontale', n:'La ripresa frontale basta: si vedono allineamento di anca-ginocchio-caviglia e bastone.'},
+  lunge:   {v:'frontale', n:'Frontale per allineamento e busto; il ginocchio che tocca dietro il tallone si vede meglio di lato.'},
+  shoulder:{v:'da dietro', n:'Riprendi la schiena: da davanti i pugni non si vedono. La distanza va comunque misurata.'},
+  aslr:    {v:'laterale', n:'Da davanti non si vede a che altezza arriva il malleolo: serve la ripresa di lato.'},
+  pushup:  {v:'laterale', n:'Di lato si vede se il corpo sale in blocco e dove sono i pollici.'},
+  rotary:  {v:'laterale', n:'Di lato si vede schiena parallela all\'asse e contatto gomito-ginocchio.'},
+};
 function sideOf(slot){ return slot.endsWith('-L')?'Sx':(slot.endsWith('-R')?'Dx':null); }
 function toJpeg(src,maxSide,q){ const w=src.videoWidth||src.naturalWidth||src.width, h=src.videoHeight||src.naturalHeight||src.height;
   const s=Math.min(1,maxSide/Math.max(w,h)); const c=document.createElement('canvas'); c.width=Math.round(w*s); c.height=Math.round(h*s);
@@ -617,7 +628,8 @@ async function loadFmsMedia(slot,file){
     let frames, kind;
     if(/^video\//.test(file.type)||/\.(mov|mp4|m4v|webm)$/i.test(file.name||'')){
       st.innerHTML='<span class="spinner"></span>Estrazione fotogrammi dal video...'; st.className='status work';
-      frames=await videoFrames(file,5); kind='video';
+      const tt=FMS_TESTS.find(x=>x.key===slot); // video unico di un test bilaterale: più fotogrammi per coprire entrambi i lati
+      frames=await videoFrames(file,(tt&&tt.bi)?10:5); kind='video';
     } else {
       let blob=file;
       if(/image\/hei[cf]/i.test(file.type)||/\.hei[cf]$/i.test(file.name||'')){ const conv=await loadHeic2any(); const o=await conv({blob:file,toType:'image/jpeg',quality:0.9}); blob=Array.isArray(o)?o[0]:o; }
@@ -650,18 +662,22 @@ function renderFmsMedia(){
       const m=state.fmsMedia[slot], side=sideOf(slot);
       h+=`<div class="fm-row">${side?`<span class="fm-side">${side}</span>`:''}`;
       if(m&&m.frames&&m.frames.length){
-        h+=`<span class="fm-thumbs">${m.frames.slice(0,5).map(f=>`<img src="${f}" alt="">`).join('')}</span><span class="fm-info">${m.kind}${m.thumbOnly?' · salvata (ricarica per una nuova lettura IA)':(m.kind==='video'?' · '+m.frames.length+' fotogrammi':'')}</span><button class="fm-x" type="button" data-rm="${slot}" title="Rimuovi">×</button>`;
-      } else h+=`<button class="fm-btn" type="button" data-up="${slot}">+ foto o video</button>`;
+        const step=Math.max(1,Math.ceil(m.frames.length/5));
+        h+=`<span class="fm-thumbs">${m.frames.filter((_,i)=>i%step===0).slice(0,5).map(f=>`<img src="${f}" alt="">`).join('')}</span><span class="fm-info">${m.kind}${m.thumbOnly?' · salvata (ricarica per una nuova lettura IA)':(m.kind==='video'?' · '+m.frames.length+' fotogrammi':'')}</span><button class="fm-x" type="button" data-rm="${slot}" title="Rimuovi">×</button>`;
+      } else h+=`<button class="fm-btn" type="button" data-up="${slot}">${t.bi?'+ video (destro poi sinistro)':'+ foto o video'}</button>`;
       h+='</div>';
     });
+    const vw=FMS_VIEW[t.key]; if(vw) h+=`<div class="fm-info" title="${escapeHtml(vw.n)}">Ripresa: ${vw.v} · ${escapeHtml(vw.n)}</div>`;
     const ai=state.fmsAI[t.key];
     if(ai&&ai.error) h+=`<div class="fms-sugg err">${escapeHtml(ai.error)}</div>`;
     else if(ai&&ai.lati) ai.lati.forEach(l=>{
       const sel=document.getElementById('fms-'+t.key+(t.bi?(l.lato==='Sx'?'-L':'-R'):'')); const cur=sel&&sel.value!==''?parseInt(sel.value,10):null;
       const sc=l.punteggio;
-      h+=`<div class="fms-sugg"><div class="sg-h">IA${l.lato?' · '+l.lato:''}: <span class="sg-score">${sc==null?'n.d.':sc}</span><span class="sg-conf">confidenza ${escapeHtml(l.confidenza||'—')}</span>${cur!==null&&sc!=null&&cur!==sc?`<span class="sg-diff">diverso dal tuo (${cur})</span>`:''}${sc!=null&&cur!==sc?`<button type="button" data-acc="${t.key}|${l.lato||''}">Usa ${sc}</button>`:''}</div>
+      const okSide=!t.bi||l.lato==='Sx'||l.lato==='Dx';
+      h+=`<div class="fms-sugg"><div class="sg-h">IA${l.lato?' · '+l.lato:''}: <span class="sg-score">${sc==null?'n.d.':sc}</span><span class="sg-conf">confidenza ${escapeHtml(l.confidenza||'—')}</span>${cur!==null&&sc!=null&&cur!==sc?`<span class="sg-diff">diverso dal tuo (${cur})</span>`:''}${sc!=null&&okSide&&cur!==sc?`<button type="button" data-acc="${t.key}|${l.lato||''}">Usa ${sc}</button>`:''}</div>
         <div class="sg-m">${escapeHtml(l.motivazione||'')}</div>${l.compensi&&l.compensi.length?`<div class="sg-c">Compensi: ${escapeHtml(l.compensi.join(', '))}</div>`:''}</div>`;
     });
+    if(ai&&ai.nota) h+=`<div class="fm-info">Nota IA: ${escapeHtml(ai.nota)}</div>`;
     box.innerHTML=h;
   });
   const anyAcc=document.querySelector('[data-acc]');
@@ -673,6 +689,7 @@ fmsPicker.addEventListener('change',e=>{ const f=e.target.files[0]; e.target.val
 function acceptSugg(key,lato){
   const t=FMS_TESTS.find(x=>x.key===key); const ai=state.fmsAI[key]; if(!t||!ai||!ai.lati) return;
   const l=ai.lati.find(x=>(x.lato||'')===lato); if(!l||l.punteggio==null) return;
+  if(t.bi&&lato!=='Sx'&&lato!=='Dx') return;
   const sel=document.getElementById('fms-'+key+(t.bi?(lato==='Sx'?'-L':'-R'):'')); if(sel){ sel.value=String(l.punteggio); }
 }
 fmsGrid.addEventListener('click',e=>{
