@@ -124,6 +124,12 @@ select{width:100%;background:#fff;border:1.5px solid var(--border-strong);color:
 .fms-sugg .sg-c{margin-top:3px;color:var(--muted);font-size:12.5px}
 .fms-sugg button{font-family:var(--sans);font-size:12.5px;font-weight:700;background:var(--green);color:#fff;border:none;border-radius:7px;padding:4px 10px;cursor:pointer;margin-left:auto}
 .fms-sugg.err{border-left-color:var(--bad);background:#FBE6E6}
+.fms-how{margin-top:12px;border-top:1px dashed var(--border-strong);padding-top:9px}
+.fms-how summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--green-dark);list-style:none;display:flex;align-items:center;gap:6px}
+.fms-how summary::-webkit-details-marker{display:none}
+.fms-how summary::before{content:'+';display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--green);color:#fff;font-size:13px;line-height:1}
+.fms-how[open] summary::before{content:'–'}
+.fms-how p{margin-top:8px;font-size:13.5px;line-height:1.5;color:var(--ink)}
 .fms-ai-bar{margin-top:20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;border-top:2px solid var(--border);padding-top:18px}
 
 /* UPLOAD */
@@ -335,7 +341,7 @@ footer{border-top:4px solid var(--green);margin-top:70px;padding:30px 0 50px}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.9L12 15l-1.9-4.1L5.5 9l4.6-1.4L12 3z"/></svg>
           Proponi punteggi con IA</button>
         <button class="btn btn-ghost btn-sm hidden" id="btn-fms-accept">Usa tutte le proposte</button>
-        <span class="status" id="fms-ai-status">Un video per test, corpo intero: nei test bilaterali l'atleta esegue prima il lato destro e poi il sinistro nella stessa ripresa. Sotto ogni test trovi l'inquadratura consigliata. Il punteggio resta tuo: controlla anche che Sx e Dx siano attribuiti bene.</span>
+        <span class="status" id="fms-ai-status">Carica una foto o un video breve (corpo intero) per i test che vuoi far leggere all'IA: nei test bilaterali una ripresa per il lato destro e una per il sinistro. Sotto ogni test trovi l'inquadratura giusta e come si esegue. Il punteggio resta tuo: la proposta va confermata.</span>
       </div>
       <div id="fms-readout" class="fms-readout hidden"></div>
       <div class="ref-note">Punteggio 0–3 per test (0 = dolore · 1 = non esegue · 2 = compensi · 3 = corretto). Nei test bilaterali vale il punteggio più basso fra i due lati; le asimmetrie Sx≠Dx vengono segnalate. Totale su 21; la soglia ≤ 14 è quella più citata in letteratura come associata a maggior rischio infortuni: è un'indicazione di screening, non una diagnosi. La proposta IA dalle riprese non valuta il dolore né i test di clearing (spalla, estensione e flessione del tronco), che restano da fare in presenza; per lo Shoulder Mobility la distanza tra i pugni va misurata.</div>
@@ -592,17 +598,27 @@ fmsGrid.querySelectorAll('select').forEach(s=>s.addEventListener('change',()=>{r
 const FMS_AI_ENDPOINT='/api/fms';
 state.fmsMedia={};   // 'squat' | 'hurdle-L' ... -> {frames:[dataURL], kind, name}
 state.fmsAI={};      // test key -> {lati:[{lato,punteggio,confidenza,motivazione,compensi}], nota}
-// Una ripresa per test (nei bilaterali: un unico video con i due lati eseguiti uno dopo l'altro).
-// Le riprese separate Sx/Dx di schede salvate in passato restano visibili.
-function fmsSlots(t){ return [t.key].concat(t.bi?[t.key+'-L',t.key+'-R'].filter(s=>state.fmsMedia[s]):[]); }
+// Test bilaterali: due riprese separate Sx e Dx (stesso ordine dei menù del punteggio). Test non bilaterali: una ripresa sola.
+// (Un eventuale video unico salvato in passato su un test bilaterale resta visibile.)
+function fmsSlots(t){ return t.bi?[t.key+'-L',t.key+'-R'].concat(state.fmsMedia[t.key]?[t.key]:[]):[t.key]; }
 const FMS_VIEW={
-  squat:   {v:'frontale + laterale', n:'Solo frontale va bene per ginocchia e simmetria; per profondità e busto serve anche il laterale.'},
-  hurdle:  {v:'frontale', n:'La ripresa frontale basta: si vedono allineamento di anca-ginocchio-caviglia e bastone.'},
-  lunge:   {v:'frontale', n:'Frontale per allineamento e busto; il ginocchio che tocca dietro il tallone si vede meglio di lato.'},
-  shoulder:{v:'da dietro', n:'Riprendi la schiena: da davanti i pugni non si vedono. La distanza va comunque misurata.'},
-  aslr:    {v:'laterale', n:'Da davanti non si vede a che altezza arriva il malleolo: serve la ripresa di lato.'},
-  pushup:  {v:'laterale', n:'Di lato si vede se il corpo sale in blocco e dove sono i pollici.'},
-  rotary:  {v:'laterale', n:'Di lato si vede schiena parallela all\'asse e contatto gomito-ginocchio.'},
+  squat:   {v:'frontale', n:'una ripresa, corpo intero'},
+  hurdle:  {v:'frontale', n:'una ripresa per lato'},
+  lunge:   {v:'frontale', n:'una ripresa per lato'},
+  shoulder:{v:'da dietro', n:'una foto per lato; la distanza va misurata'},
+  aslr:    {v:'laterale', n:'una ripresa per lato, dal lato della gamba che sale'},
+  pushup:  {v:'laterale', n:'una ripresa'},
+  rotary:  {v:'laterale', n:'una ripresa per lato'},
+};
+// Protocollo di esecuzione di ogni test (Functional Movement Screen, Cook et al.)
+const FMS_HOW={
+  squat:'Piedi alla larghezza delle spalle, paralleli, punte avanti. Bastone sulla testa con i gomiti a 90°, poi braccia tese in alto. Scendere lentamente il più in basso possibile con talloni a terra, busto alto e bastone sopra i piedi; tenere 1 secondo e risalire. Fino a 3 prove. Se non ottiene 3, ripetere con i talloni su un rialzo (asse di circa 5 cm): se riesce così il punteggio è 2.',
+  hurdle:'Ostacolo all\'altezza della tuberosità tibiale dell\'atleta. Piedi uniti, punte a contatto con la base dell\'ostacolo, bastone sulle spalle dietro il collo. Scavalcare con una gamba, toccare il tallone a terra oltre l\'ostacolo con la gamba d\'appoggio tesa, e tornare alla partenza. Fino a 3 prove per lato. Il lato valutato è quello della gamba che scavalca.',
+  lunge:'Misurare la lunghezza della tibia (da terra alla tuberosità tibiale). Piede dietro con le punte sulla linea di partenza, tallone del piede avanti a una lunghezza di tibia, sulla stessa linea. Bastone verticale dietro la schiena a contatto con testa, dorso e sacro: in alto la mano opposta alla gamba avanti. Scendere fino a toccare con il ginocchio dietro il tallone del piede avanti e risalire. Fino a 3 prove per lato. Il lato valutato è quello della gamba avanti.',
+  shoulder:'Misurare la lunghezza della mano (piega del polso – punta del dito medio). In piedi, pugni chiusi con il pollice dentro: in un unico movimento una mano va dietro la nuca e l\'altra dietro la schiena, avvicinando i pugni senza poi spostarli. Misurare la distanza tra i pugni. 3 prove per lato; il lato valutato è quello della mano in alto. Test di clearing: mano sulla spalla opposta e sollevare il gomito; se c\'è dolore il punteggio è 0.',
+  aslr:'Supino, braccia lungo i fianchi con i palmi in su, rialzo sotto le ginocchia. Individuare il punto medio tra spina iliaca anteriore superiore e linea articolare del ginocchio. Sollevare la gamba tesa con il piede a martello, mentre l\'altra resta tesa a contatto con il rialzo. Fino a 3 prove per lato; il lato valutato è quello della gamba che sale.',
+  pushup:'Prono, mani alla larghezza delle spalle con i pollici all\'altezza della fronte (maschi) o del mento (femmine), ginocchia tese, piedi a martello. Spingere sollevando il corpo in blocco, senza ritardo della zona lombare. Se non riesce, ripetere con le mani più in basso (mento per i maschi, clavicole per le femmine). Test di clearing: estensione del tronco da prono (press-up); se c\'è dolore il punteggio è 0.',
+  rotary:'In quadrupedia sopra l\'asse: spalle sopra le mani, anche sopra le ginocchia, pollici, ginocchia e piedi a contatto con l\'asse. Estendere insieme braccio e gamba dello stesso lato, poi portare gomito e ginocchio a toccarsi sopra l\'asse. Se non riesce, eseguire lo schema diagonale (braccio e gamba opposti). Il lato valutato è quello del braccio che si muove. Test di clearing: posizione di preghiera in flessione del tronco; se c\'è dolore il punteggio è 0.',
 };
 function sideOf(slot){ return slot.endsWith('-L')?'Sx':(slot.endsWith('-R')?'Dx':null); }
 function toJpeg(src,maxSide,q){ const w=src.videoWidth||src.naturalWidth||src.width, h=src.videoHeight||src.naturalHeight||src.height;
@@ -628,8 +644,7 @@ async function loadFmsMedia(slot,file){
     let frames, kind;
     if(/^video\//.test(file.type)||/\.(mov|mp4|m4v|webm)$/i.test(file.name||'')){
       st.innerHTML='<span class="spinner"></span>Estrazione fotogrammi dal video...'; st.className='status work';
-      const tt=FMS_TESTS.find(x=>x.key===slot); // video unico di un test bilaterale: più fotogrammi per coprire entrambi i lati
-      frames=await videoFrames(file,(tt&&tt.bi)?10:5); kind='video';
+      frames=await videoFrames(file,5); kind='video';
     } else {
       let blob=file;
       if(/image\/hei[cf]/i.test(file.type)||/\.hei[cf]$/i.test(file.name||'')){ const conv=await loadHeic2any(); const o=await conv({blob:file,toType:'image/jpeg',quality:0.9}); blob=Array.isArray(o)?o[0]:o; }
@@ -652,7 +667,11 @@ async function loadFmsMedia(slot,file){
 }
 // costruisce i controlli dentro ogni scheda FMS
 FMS_TESTS.forEach((t,i)=>{
-  const card=fmsGrid.children[i]; const box=document.createElement('div'); box.className='fms-media'; box.id='fmsm-'+t.key;
+  const card=fmsGrid.children[i];
+  const how=document.createElement('details'); how.className='fms-how';
+  how.innerHTML=`<summary>Come si esegue</summary><p>${FMS_HOW[t.key]}</p>`;
+  card.appendChild(how);
+  const box=document.createElement('div'); box.className='fms-media'; box.id='fmsm-'+t.key;
   card.appendChild(box);
 });
 function renderFmsMedia(){
@@ -664,10 +683,10 @@ function renderFmsMedia(){
       if(m&&m.frames&&m.frames.length){
         const step=Math.max(1,Math.ceil(m.frames.length/5));
         h+=`<span class="fm-thumbs">${m.frames.filter((_,i)=>i%step===0).slice(0,5).map(f=>`<img src="${f}" alt="">`).join('')}</span><span class="fm-info">${m.kind}${m.thumbOnly?' · salvata (ricarica per una nuova lettura IA)':(m.kind==='video'?' · '+m.frames.length+' fotogrammi':'')}</span><button class="fm-x" type="button" data-rm="${slot}" title="Rimuovi">×</button>`;
-      } else h+=`<button class="fm-btn" type="button" data-up="${slot}">${t.bi?'+ video (destro poi sinistro)':'+ foto o video'}</button>`;
+      } else h+=`<button class="fm-btn" type="button" data-up="${slot}">${side==='Dx'?'+ Dx · lato destro':(side==='Sx'?'+ Sx · lato sinistro':'+ foto o video')}</button>`;
       h+='</div>';
     });
-    const vw=FMS_VIEW[t.key]; if(vw) h+=`<div class="fm-info" title="${escapeHtml(vw.n)}">Ripresa: ${vw.v} · ${escapeHtml(vw.n)}</div>`;
+    const vw=FMS_VIEW[t.key]; if(vw) h+=`<div class="fm-info">Ripresa ${vw.v} · ${escapeHtml(vw.n)}</div>`;
     const ai=state.fmsAI[t.key];
     if(ai&&ai.error) h+=`<div class="fms-sugg err">${escapeHtml(ai.error)}</div>`;
     else if(ai&&ai.lati) ai.lati.forEach(l=>{
@@ -1416,7 +1435,7 @@ function genPDF(){
   const nome=val('f-nome')||'Atleta', op=val('f-op')||'Andrea Bertelli', dataIso=val('f-data')||new Date().toISOString().slice(0,10), note=val('f-note');
   let y=0;
   const ensure=h=>{ if(y+h>H-18){ doc.addPage(); y=18; } };
-  const section=t=>{ ensure(20); y+=2; doc.setFillColor(...GREEN); doc.rect(M,y,3.2,7,'F'); doc.setFillColor(...YEL); doc.rect(M+3.2,y,1.3,7,'F');
+  const section=(t,need)=>{ ensure(Math.max(20,(need||0)+14)); y+=2; doc.setFillColor(...GREEN); doc.rect(M,y,3.2,7,'F'); doc.setFillColor(...YEL); doc.rect(M+3.2,y,1.3,7,'F');
     doc.setTextColor(...INK); doc.setFont('helvetica','bold'); doc.setFontSize(13.5); doc.text(S(t),M+7.8,y+5.6); y+=12; };
   const label=t=>{ ensure(12); doc.setFont('helvetica','bold'); doc.setFontSize(8.2); doc.setTextColor(...GREEND); doc.text(S(t).toUpperCase(),M,y,{charSpace:0.35}); y+=5.2; };
   const para=(text,o)=>{ o=o||{}; const size=o.size||9.8, lh=o.lh||4.9, x=o.x||M, w=o.w||CW;
@@ -1451,7 +1470,36 @@ function genPDF(){
     doc.setFillColor(...ZEBRA); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3); doc.roundedRect(M,y,CW,nh,2,2,'FD');
     doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(...MUTED); doc.text('NOTE / ANAMNESI',M+4,y+5.2);
     doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(...INK); doc.text(nl,M+4,y+10); y+=nh+4; }
-  y+=3;
+  y+=2;
+
+  // ---- QUADRO DI SINTESI (colpo d'occhio) ----
+  let ev=state.evalData, src=state.evalSource;
+  if(!ev){ const d0=collectAllData(); if(hasAnyData(d0)){ ev=localEvaluation(d0); src='Analisi automatica locale'; } }
+  const findingsAll=collectFindings(), nMarc=findingsAll.filter(f=>f.sev==='bad').length, nLiev=findingsAll.length-nMarc;
+  const nViews=VIEWS.filter(v=>state.results[v.key]&&!state.results[v.key].error).length;
+  section('Quadro di sintesi');
+  { const tw=(CW-8)/3, th=25; ensure(th+4);
+    const tile=(i,k,big,sub,col,bg)=>{ const x=M+i*(tw+4);
+      doc.setFillColor(...(bg||ZEBRA)); doc.setDrawColor(...(col||BORDER)); doc.setLineWidth(col?0.6:0.3); doc.roundedRect(x,y,tw,th,2.5,2.5,'FD');
+      doc.setFont('helvetica','bold'); doc.setFontSize(7.4); doc.setTextColor(...MUTED); doc.text(S(k).toUpperCase(),x+4,y+6,{charSpace:0.3});
+      doc.setFontSize(15.5); doc.setTextColor(...(col?col:INK)); doc.text(S(big),x+4,y+14.6);
+      doc.setFont('helvetica','normal'); doc.setFontSize(8.2); doc.setTextColor(...INK); doc.text(doc.splitTextToSize(S(sub),tw-8).slice(0,2),x+4,y+19.6); };
+    if(p.giudizio) tile(0,'Profilo atletico',p.giudizio,`media livelli ${fx(p.media,1)} su ${p.n} test`+(p.diff?` · cambi di direzione ${p.diff.ok?'efficaci':'da correggere'}`:''),LVT[p.g],LVBG[p.g]);
+    else tile(0,'Profilo atletico','—',p.tests.some(t=>t.value!==null)?'livelli non calcolati: mancano sesso o età':'test non inseriti');
+    if(fms.anyEntered) tile(1,'Functional Movement Screen',`${fms.total} / 21`,(fms.total<=14?'sotto la soglia di 14':'sopra la soglia di 14')+(fms.complete?'':' · incompleto')+(fms.flags.length?` · ${fms.flags.length} segnalazioni`:''),fms.total<=14?SEVc.bad:SEVc.ok,fms.total<=14?LVBG[4]:LVBG[1]);
+    else tile(1,'Functional Movement Screen','—','non eseguito');
+    if(nViews) tile(2,'Postura da foto',findingsAll.length?`${nMarc} marcati`:'nella norma',findingsAll.length?`${nLiev} rilievi lievi · ${nViews} ${nViews===1?'vista':'viste'} analizzate`:`${nViews} ${nViews===1?'vista analizzata':'viste analizzate'}`,nMarc?SEVc.bad:(nLiev?SEVc.warn:SEVc.ok),nMarc?LVBG[4]:(nLiev?LVBG[3]:LVBG[1]));
+    else tile(2,'Postura da foto','—','foto non caricate');
+    y+=th+5; }
+  if(ev&&ev.priorita&&ev.priorita.length){
+    ensure(8+ev.priorita.length*6);
+    doc.setFont('helvetica','bold'); doc.setFontSize(8.2); doc.setTextColor(...GREEND); doc.text('PRIORITÀ DI LAVORO',M,y+1,{charSpace:0.35}); y+=5.5;
+    ev.priorita.slice(0,4).forEach((pr,i)=>{ doc.setFillColor(...GREEN); doc.circle(M+2.4,y-1.2,2.4,'F');
+      doc.setFont('helvetica','bold'); doc.setFontSize(8); doc.setTextColor(255,255,255); doc.text(String(i+1),M+2.4,y-0.1,{align:'center'});
+      doc.setFontSize(9.6); doc.setTextColor(...INK); doc.text(doc.splitTextToSize(S(pr.titolo),CW-10)[0],M+7,y); y+=6; });
+    y+=2;
+  }
+  y+=2;
 
   // ---- PROFILO ATLETICO ----
   const done=p.tests.filter(t=>t.value!==null);
@@ -1491,9 +1539,14 @@ function genPDF(){
   // ---- FMS ----
   if(fms.anyEntered){
     section('Functional Movement Screen');
-    const frows=fms.tests.map(t=>[t.name, t.bi?(t.l??'—'):'', t.bi?(t.r??'—'):'', t.score??'—']);
-    doc.autoTable(Object.assign(tableBase(),{ startY:y, head:[['Test','Sx','Dx','Punteggio']],
-      columnStyles:{0:{fontStyle:'bold'},1:{cellWidth:22,halign:'center'},2:{cellWidth:22,halign:'center'},3:{cellWidth:28,halign:'center',fontStyle:'bold'}},
+    const obsTxt=FMS_TESTS.map(t=>{ const ai=state.fmsAI[t.key]; if(!ai||!ai.lati) return '';
+      return ai.lati.map(l=>(l.lato?l.lato+' · ':'')+'IA '+(l.punteggio==null?'n.d.':l.punteggio)+': '+l.motivazione+(l.compensi&&l.compensi.length?' ('+l.compensi.join(', ')+')':'')).join('\n'); });
+    const hasObs=obsTxt.some(Boolean);
+    const frows=fms.tests.map((t,i)=>{ const r=[t.name, t.bi?(t.l??'—'):'', t.bi?(t.r??'—'):'', t.score??'—']; if(hasObs) r.push(obsTxt[i]||''); return r; });
+    const fhead=['Test','Sx','Dx','Punt.']; if(hasObs) fhead.push('Osservazioni dalle riprese (proposta IA)');
+    doc.autoTable(Object.assign(tableBase(),{ startY:y, head:[fhead],
+      columnStyles:hasObs?{0:{fontStyle:'bold',cellWidth:38},1:{cellWidth:10,halign:'center'},2:{cellWidth:10,halign:'center'},3:{cellWidth:13,halign:'center',fontStyle:'bold'},4:{fontSize:7.8,textColor:[55,70,62]}}
+                         :{0:{fontStyle:'bold'},1:{cellWidth:22,halign:'center'},2:{cellWidth:22,halign:'center'},3:{cellWidth:28,halign:'center',fontStyle:'bold'}},
       body:frows.map(r=>r.map(x=>S(String(x)))),
       didParseCell:d=>{ if(d.section==='body'&&d.column.index===3){ const sc=fms.tests[d.row.index].score; if(sc!==null) d.cell.styles.textColor = sc>=3?SEVc.ok:(sc===2?SEVc.warn:SEVc.bad); } } }));
     y=doc.lastAutoTable.finalY+4;
@@ -1503,39 +1556,37 @@ function genPDF(){
     doc.setFontSize(9.2); doc.setTextColor(...fc); doc.text(S((fbad?'Sotto la soglia di 14: movimento da consolidare':'Sopra la soglia di 14: movimento adeguato')+(fms.complete?'':'  ·  screening incompleto')),W-M-4,y+7,{align:'right'});
     y+=15;
     fms.flags.forEach(fl=>para('•  '+fl,{size:9,color:SEVc.warn,gap:0.6}));
+    if(hasObs) para('Il punteggio riportato è quello assegnato dal preparatore; le osservazioni dalle riprese sono una proposta dell\'IA come supporto. Dolore e test di clearing sono valutati in presenza.',{size:7.6,color:MUTED,gap:2});
     y+=3;
-    const obs=fmsObservations();
-    if(obs){
-      label('Osservazioni dalle riprese (lettura IA)');
-      doc.autoTable(Object.assign(tableBase(),{ startY:y, head:[['Test','Lato','IA','Osservazione']],
-        columnStyles:{0:{fontStyle:'bold',cellWidth:42},1:{cellWidth:13,halign:'center'},2:{cellWidth:12,halign:'center',fontStyle:'bold'},3:{fontSize:8.4}},
-        body:obs.map(o=>[S(o.test),S(o.lato||'-'),S(o.punteggio_proposto_ia==null?'n.d.':String(o.punteggio_proposto_ia)),S(o.osservazione+(o.compensi&&o.compensi.length?' Compensi: '+o.compensi.join(', ')+'.':''))]) }));
-      y=doc.lastAutoTable.finalY+3;
-      para('Punteggi proposti dall\'IA a partire da foto o fotogrammi video, come supporto: il punteggio FMS riportato sopra è quello assegnato dal preparatore.',{size:7.8,color:MUTED,gap:4});
-    }
   }
 
   // ---- POSTURA (FOTO) ----
   const views=VIEWS.map(v=>state.results[v.key]).filter(r=>r&&!r.error);
   if(views.length){
-    section('Rilievi posturali da foto');
-    views.forEach(r=>{
-      const iw=50, ih=Math.min(78, iw*(r.canvasH||4)/(r.canvasW||3)), iwEff=ih*(r.canvasW||3)/(r.canvasH||4);
-      ensure(Math.max(ih,40)+10);
-      doc.setFont('helvetica','bold'); doc.setFontSize(10.5); doc.setTextColor(...INK); doc.text(S(r.label),M,y+1); y+=4.5;
-      const y0=y;
-      try{ doc.addImage(r.png,'JPEG',M,y0,iwEff,ih); doc.setDrawColor(...BORDER); doc.setLineWidth(0.3); doc.rect(M,y0,iwEff,ih); }catch(e){}
-      doc.autoTable(Object.assign(tableBase(),{ startY:y0, margin:{left:M+iw+6,right:M,bottom:20}, head:[['Parametro','Valore','Esito']],
-        columnStyles:{0:{fontStyle:'bold'},1:{cellWidth:22,halign:'center',fontStyle:'bold'},2:{cellWidth:46,fontSize:8.4}},
-        body:r.metrics.map(m=>[S(m.label),S(m.val),S(SEV[m.sev]+(m.sub?' · '+m.sub:''))]),
-        didParseCell:d=>{ if(d.section==='body'&&d.column.index===2){ d.cell.styles.textColor=SEVc[r.metrics[d.row.index].sev]; d.cell.styles.fontStyle='bold'; } } }));
-      y=Math.max(y0+ih, doc.lastAutoTable.finalY)+8;
-    });
+    const colW=(CW-6)/2, iw=31, LH=7.4;
+    const geo=views.map(r=>{ const ratio=(r.canvasH||4)/(r.canvasW||3); let w=iw, h=iw*ratio; if(h>48){ h=48; w=h/ratio; }
+      return {r,w,h,blk:6+Math.max(h,r.metrics.length*LH)+3}; });
+    section('Rilievi posturali da foto',Math.max(...geo.slice(0,2).map(g=>g.blk)));
+    for(let i=0;i<geo.length;i+=2){
+      const pair=geo.slice(i,i+2), rowH=Math.max(...pair.map(g=>g.blk)); ensure(rowH+2); const top=y;
+      pair.forEach((g,j)=>{ const x0=M+j*(colW+6), r=g.r, tx=x0+iw+4, tw=colW-iw-4;
+        doc.setFillColor(...ZEBRA); doc.setDrawColor(...BORDER); doc.setLineWidth(0.25); doc.roundedRect(x0,top,colW,rowH,2,2,'FD');
+        doc.setFont('helvetica','bold'); doc.setFontSize(9.4); doc.setTextColor(...GREEND); doc.text(S(r.label),x0+3,top+5);
+        try{ doc.addImage(r.png,'JPEG',x0+3+(iw-g.w)/2,top+7.5,g.w,g.h); doc.setDrawColor(...BORDER); doc.rect(x0+3+(iw-g.w)/2,top+7.5,g.w,g.h); }catch(e){}
+        let yy=top+10.5;
+        r.metrics.forEach(m=>{ const c=SEVc[m.sev];
+          doc.setFillColor(...c); doc.circle(tx+1.1,yy-1.1,1.1,'F');
+          doc.setFont('helvetica','bold'); doc.setFontSize(7.4); doc.setTextColor(...INK); doc.text(doc.splitTextToSize(S(m.label),tw-15)[0],tx+3.6,yy);
+          doc.text(S(m.val),x0+colW-3,yy,{align:'right'});
+          doc.setFont('helvetica','normal'); doc.setFontSize(6.9); doc.setTextColor(...c); doc.text(doc.splitTextToSize(S(SEV[m.sev]+(m.sub&&m.sub!=='simmetrico'?' · '+m.sub:'')),tw-4)[0],tx+3.6,yy+3);
+          yy+=LH; });
+      });
+      y=top+rowH+4;
+    }
+    para('Verde ottimale · arancio lieve · rosso marcato. Misure 2D da fotografia: indicative, dipendono da inquadratura e posizione.',{size:7.6,color:MUTED,gap:4});
   }
 
   // ---- ANALISI COMPLESSIVA ----
-  let ev=state.evalData, src=state.evalSource;
-  if(!ev){ const d=collectAllData(); if(hasAnyData(d)){ ev=localEvaluation(d); src='Analisi automatica locale'; } }
   if(ev){
     ensure(70); section('Analisi complessiva');
     if(ev.sintesi){ doc.setFont('helvetica','normal'); doc.setFontSize(10.2);
@@ -1577,7 +1628,7 @@ function genPDF(){
       y+=3;
     }
     if(ev.piano_lavoro.length){
-      section('Piano di lavoro');
+      section('Piano di lavoro',45);
       ev.piano_lavoro.forEach(b=>{
         doc.setFont('helvetica','normal'); doc.setFontSize(9.2);
         const ol=b.obiettivo?doc.splitTextToSize(S('Obiettivo: '+b.obiettivo),CW-8):[]; const oh=ol.length?ol.length*4.4+4.2:0;
