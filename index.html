@@ -625,16 +625,31 @@ function toJpeg(src,maxSide,q){ const w=src.videoWidth||src.naturalWidth||src.wi
   const s=Math.min(1,maxSide/Math.max(w,h)); const c=document.createElement('canvas'); c.width=Math.round(w*s); c.height=Math.round(h*s);
   c.getContext('2d').drawImage(src,0,0,c.width,c.height); return c.toDataURL('image/jpeg',q); }
 function imageFromBlob(blob){ return new Promise((res,rej)=>{ const im=new Image(); im.onload=()=>res(im); im.onerror=()=>rej(new Error('img')); im.src=URL.createObjectURL(blob); }); }
-async function videoFrames(file,n){
+// Estrae fotogrammi da un video direttamente nel browser: il file non viene mai caricato sul server,
+// quindi non c'è limite di dimensione. I tempi di attesa crescono con il peso del file (video lunghi o 4K).
+async function videoFrames(file,onStep){
+  const MB=(file.size||0)/1048576;
   const url=URL.createObjectURL(file); const v=document.createElement('video');
   v.muted=true; v.playsInline=true; v.preload='auto'; v.src=url;
   try{
-    await new Promise((res,rej)=>{ const to=setTimeout(()=>rej(new Error('timeout')),20000);
+    await new Promise((res,rej)=>{ const to=setTimeout(()=>rej(new Error('timeout')),Math.min(180000,30000+MB*500));
       v.onloadeddata=()=>{ clearTimeout(to); res(); }; v.onerror=()=>{ clearTimeout(to); rej(new Error('video')); }; v.load(); });
-    const d=v.duration; if(!isFinite(d)||d<=0) throw new Error('durata');
-    const seek=t=>new Promise((res,rej)=>{ const to=setTimeout(()=>rej(new Error('seek')),8000); v.onseeked=()=>{ clearTimeout(to); res(); }; v.currentTime=t; });
+    let d=v.duration;
+    if(!isFinite(d)){ // alcuni webm non dichiarano la durata: la si ricava andando in fondo
+      await new Promise(res=>{ const to=setTimeout(res,15000); v.ontimeupdate=()=>{ v.ontimeupdate=null; clearTimeout(to); res(); }; v.currentTime=1e7; });
+      d=v.duration;
+    }
+    if(!isFinite(d)||d<=0) throw new Error('durata');
+    const n=d<=15?5:(d<=40?8:10);   // più fotogrammi per i video lunghi, così il movimento non si perde
+    const seekMs=Math.min(60000,15000+MB*150);
+    const seek=t=>new Promise((res,rej)=>{ const to=setTimeout(()=>rej(new Error('seek')),seekMs); v.onseeked=()=>{ clearTimeout(to); res(); }; v.currentTime=t; });
     const out=[];
-    for(let i=0;i<n;i++){ await seek(Math.min(d-0.05,d*(0.06+0.88*i/(n-1)))); out.push(toJpeg(v,640,0.74)); }
+    for(let i=0;i<n;i++){
+      if(onStep) onStep(i+1,n,MB);
+      try{ await seek(Math.min(d-0.05,d*(0.06+0.88*i/(n-1)))); out.push(toJpeg(v,640,0.74)); }
+      catch(e){ console.warn('fotogramma saltato',i,e); }
+    }
+    if(out.length<2) throw new Error('seek');
     return out;
   } finally { URL.revokeObjectURL(url); }
 }
@@ -643,8 +658,9 @@ async function loadFmsMedia(slot,file){
   try{
     let frames, kind;
     if(/^video\//.test(file.type)||/\.(mov|mp4|m4v|webm)$/i.test(file.name||'')){
-      st.innerHTML='<span class="spinner"></span>Estrazione fotogrammi dal video...'; st.className='status work';
-      frames=await videoFrames(file,5); kind='video';
+      const MBs=((file.size||0)/1048576).toFixed(0);
+      st.innerHTML=`<span class="spinner"></span>Apertura del video (${MBs} MB)...`; st.className='status work';
+      frames=await videoFrames(file,(i,n)=>{ st.innerHTML=`<span class="spinner"></span>Estrazione fotogrammi ${i} di ${n} (video da ${MBs} MB)...`; }); kind='video';
     } else {
       let blob=file;
       if(/image\/hei[cf]/i.test(file.type)||/\.hei[cf]$/i.test(file.name||'')){ const conv=await loadHeic2any(); const o=await conv({blob:file,toType:'image/jpeg',quality:0.9}); blob=Array.isArray(o)?o[0]:o; }
@@ -658,8 +674,11 @@ async function loadFmsMedia(slot,file){
     st.textContent='Ripresa caricata. Premi «Proponi punteggi con IA» quando hai caricato i test che ti servono.'; st.className='status';
   }catch(e){
     console.error('FMS media',e);
-    st.textContent = e.message==='video'||e.message==='timeout'
-      ? 'Questo video non si apre nel browser (spesso i .mov HEVC dell\'iPhone su Windows/Chrome). Prova da Safari, oppure registra in «Più compatibile» o carica una foto.'
+    st.textContent = e.message==='video'
+      ? 'Questo video non si apre nel browser: succede con i .mov HEVC dell\'iPhone su Chrome per Windows. Prova da Safari o Edge, oppure registra in «Più compatibile» (Impostazioni › Fotocamera › Formati).'
+      : e.message==='timeout'||e.message==='seek'
+      ? 'Il video è troppo pesante per questo dispositivo. Accorcialo al solo movimento (taglia dalla Galleria) o registra in 1080p invece che in 4K.'
+      : e.message==='durata' ? 'Non riesco a leggere la durata del video: prova a riesportarlo o a caricarlo in MP4.'
       : 'Impossibile leggere il file. Usa JPG, PNG, MP4 o MOV.';
     st.className='status err';
   }
