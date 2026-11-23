@@ -1,10 +1,10 @@
 # Circolo Tennis Scaligero · Valutazione atletico-posturale agonisti
 
-App a pagina singola per il settore agonistico (a cura di Andrea Bertelli).
+App a pagina singola per il settore agonistico, a cura dell'Area Preparazione Fisica del Circolo Tennis Scaligero.
 
 - **Test atletici**: batteria CTS 2026/27 (sit and reach, salto in lungo, lancio dorsale, navetta 8×6, sprint 20 m, navetta 5×4, beep test) con livelli 1-4 sulle soglie del circolo per sesso e fascia d'età, differenza 5×4 − 20 m e giudizio complessivo. Stesse regole del foglio `test_2026_27.xlsx`.
 - **Postura**: FMS + foto (frontale, laterale, squat frontale e laterale) con pose estimation eseguita sul dispositivo.
-- **FMS da foto o video**: in ogni test si carica una foto o un video breve: due riprese separate (Sx e Dx) nei test bilaterali, una sola negli altri. Ogni scheda ha il protocollo «Come si esegue». L'app estrae 5 fotogrammi da ogni video e `api/fms.js` chiede a Claude una proposta di punteggio 1-3 con motivazione e compensi visti. Il punteggio lo conferma il preparatore; dolore (0) e test di clearing non vengono valutati dall'IA.
+- **FMS**: protocollo FMS Level 1 v2.9 (2021) del manuale dell'Area, con preparazione, consegne e criteri 3-2-1-0 per ogni test, clearing test (spalla, estensione, flessione) e ankle clearing. Un clearing positivo porta il test a 0; la lettura si basa sul profilo (dolore, punteggi 1, asimmetrie) e non su una soglia del totale. Una foto per test (Sx e Dx nei bilaterali) resta nella scheda come documentazione; il punteggio lo assegna il valutatore.
 - **Analisi complessiva e piano di lavoro**: generati da Claude tramite `api/evaluate.js`; se il servizio non risponde l'app usa l'analisi locale a regole.
 - **Importa da Excel**: il pulsante legge il foglio «Dati test» di `test_2026_27.xlsx` e crea una scheda per ogni atleta. Reimportando il file aggiornato i risultati si aggiornano e foto e analisi già fatte restano. Si sceglie l'atleta, si caricano le foto e la scheda si salva da sola dopo l'analisi.
 - **Report PDF** con logo del circolo.
